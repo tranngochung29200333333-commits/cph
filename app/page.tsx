@@ -95,7 +95,7 @@ export default function Home() {
           avatar_url: profile?.avatar_url || null,
           listingCount: 1,
           categoryName: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.name || "Sản phẩm",
-          categorySlug: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "",
+          categorySlug: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.slug || "",
           latestTitle: item.title,
         });
       }
