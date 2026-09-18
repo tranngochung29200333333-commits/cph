@@ -295,8 +295,7 @@ export default function SellerPage() {
                     </div>
                   </Link>
                   <div className="px-4 pb-4 pt-2">
-                    {cartQty(item.id)>0 ? <div className="relative flex items-center justify-center rounded-xl bg-brand-50 p-2">
-                      <span className="text-xs font-extrabold text-brand-700">Giỏ hàng</span>
+                    {cartQty(item.id)>0 ? <div className="flex items-center justify-center rounded-xl bg-brand-50 p-2">
                       <div className="inline-flex items-center rounded-lg border bg-white">
                         <button type="button" onClick={()=>updateCart(item,cartQty(item.id)-1)} className="grid h-8 w-8 place-items-center"><Minus size={14}/></button>
                         <span className="min-w-8 text-center text-sm font-black">{cartQty(item.id)}</span>
