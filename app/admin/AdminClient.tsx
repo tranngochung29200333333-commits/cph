@@ -207,7 +207,19 @@ export default function AdminClient() {
 
     const { data, error: invokeError } = await supabaseBrowser.functions.invoke("admin-users", { body });
     if (invokeError || data?.error) {
-      window.alert(invokeError?.message || data?.error || "Không thể cập nhật tài khoản.");
+      let detailedError = data?.error || "";
+      if (invokeError && "context" in invokeError) {
+        try {
+          const response = (invokeError as any).context;
+          if (response && typeof response.json === "function") {
+            const payload = await response.json();
+            detailedError = payload?.error || detailedError;
+          }
+        } catch {
+          // Keep the original FunctionsHttpError message when the response body cannot be parsed.
+        }
+      }
+      window.alert(detailedError || invokeError?.message || "Không thể cập nhật tài khoản.");
       return;
     }
 
