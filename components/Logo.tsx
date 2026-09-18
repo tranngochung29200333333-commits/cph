@@ -1,0 +1,2 @@
+import Link from "next/link";import {MapPin} from "lucide-react";
+export default function Logo(){return <Link href="/" className="flex items-center gap-2.5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-600 text-white"><MapPin size={21}/></span><span><b className="block text-[17px] font-black">PHÚ THỌ</b><small className="block text-[11px] font-bold tracking-[.18em] text-brand-600">MARKET</small></span></Link>}
