@@ -94,7 +94,7 @@ export default function Home() {
           full_name: registrationMap.get(item.seller_id)?.store_name || profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           listingCount: 1,
-          categoryName: categoryMap.get(registrationMap.get(item.seller_id)?.category_id) || "Sản phẩm",
+          categoryName: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.name || "Sản phẩm",
           categorySlug: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "",
           latestTitle: item.title,
         });
@@ -345,7 +345,7 @@ export default function Home() {
                 rel="noreferrer"
                 className="mt-1 inline-flex text-sm font-extrabold text-brand-700 hover:underline"
               >
-                0353109444 · Nhắn tin Zalo
+                Nhắn tin Zalo
               </a>
             </div>
           </div>
