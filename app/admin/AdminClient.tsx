@@ -19,6 +19,9 @@ export default function AdminClient() {
   const [reports, setReports] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [sellers, setSellers] = useState<any[]>([]);
+  const [sellerCategories, setSellerCategories] = useState<any[]>([]);
+  const [sellerLocations, setSellerLocations] = useState<any[]>([]);
+  const [editingSellerId, setEditingSellerId] = useState<string | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>("listings");
   const [filter, setFilter] = useState<Filter>("pending");
@@ -137,13 +140,17 @@ export default function AdminClient() {
     const sellerRows = sellerRegistrationResult.data || [];
     const sellerCategoryIds = [...new Set(sellerRows.map((x) => x.category_id).filter(Boolean))];
     const sellerLocationIds = [...new Set(sellerRows.map((x) => x.location_id).filter(Boolean))];
-    const [sc, sl] = await Promise.all([
+    const [sc, sl, allSellerCategories, allSellerLocations] = await Promise.all([
       sellerCategoryIds.length ? supabaseBrowser.from("categories").select("id,name").in("id", sellerCategoryIds) : Promise.resolve({data: [] as any[]}),
       sellerLocationIds.length ? supabaseBrowser.from("locations").select("id,name").in("id", sellerLocationIds) : Promise.resolve({data: [] as any[]}),
+      supabaseBrowser.from("categories").select("id,name").order("name"),
+      supabaseBrowser.from("locations").select("id,name").eq("level","area").order("name"),
     ]);
     const scm = new Map((sc.data || []).map((x) => [x.id, x.name]));
     const slm = new Map((sl.data || []).map((x) => [x.id, x.name]));
     setSellers(sellerRows.map((x) => ({...x, category_name: scm.get(x.category_id) || "Khác", location_name: slm.get(x.location_id) || "Phú Thọ"})));
+    setSellerCategories(allSellerCategories.data || []);
+    setSellerLocations(allSellerLocations.data || []);
     setUsers(userResult.data || []);
     setLoading(false);
   }
@@ -171,6 +178,30 @@ export default function AdminClient() {
       return;
     }
 
+    await load();
+  }
+
+  async function updateSellerProfile(seller: any) {
+    const store = document.getElementById("seller-store-" + seller.id) as HTMLInputElement | null;
+    const phone = document.getElementById("seller-phone-" + seller.id) as HTMLInputElement | null;
+    const zalo = document.getElementById("seller-zalo-" + seller.id) as HTMLInputElement | null;
+    const category = document.getElementById("seller-category-" + seller.id) as HTMLSelectElement | null;
+    const location = document.getElementById("seller-location-" + seller.id) as HTMLSelectElement | null;
+    const storeName = store?.value.trim() || "";
+    const phoneValue = phone?.value.trim() || "";
+    if (storeName.length < 2) { window.alert("Tên cửa hàng phải có ít nhất 2 ký tự."); return; }
+    if (!/^0[0-9]{8,10}$/.test(phoneValue)) { window.alert("Số điện thoại không hợp lệ."); return; }
+    const { error: updateError } = await supabaseBrowser.from("seller_registrations").update({
+      store_name: storeName,
+      category_id: category?.value || seller.category_id,
+      location_id: location?.value || seller.location_id,
+      phone: phoneValue,
+      zalo_phone: zalo?.value.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", seller.id);
+    if (updateError) { window.alert(updateError.message); return; }
+    setEditingSellerId(null);
+    window.alert("Đã cập nhật profile nhà bán hàng.");
     await load();
   }
 
@@ -409,9 +440,26 @@ export default function AdminClient() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={"rounded-full px-3 py-1 text-xs font-bold " + (seller.status === "approved" ? "bg-brand-50 text-brand-700" : seller.status === "rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700")}>{seller.status === "approved" ? "Đã duyệt" : seller.status === "rejected" ? "Từ chối" : "Chờ duyệt"}</span>
+                    <button type="button" onClick={() => setEditingSellerId(editingSellerId === seller.id ? null : seller.id)} className="rounded-lg border px-3 py-2 text-xs font-bold">Sửa profile</button>
                     {seller.status === "pending" && <><button type="button" onClick={() => sellerStatus(seller.id, "approved")} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white">Duyệt nhà bán hàng</button><button type="button" onClick={() => sellerStatus(seller.id, "rejected")} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Từ chối</button></>}
                   </div>
                 </div>
+                {editingSellerId === seller.id && (
+                  <div className="mt-4 rounded-2xl border bg-slate-50 p-4">
+                    <p className="mb-3 text-sm font-black">Chỉnh sửa profile nhà bán hàng</p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="text-xs font-bold">Tên cửa hàng<input id={"seller-store-" + seller.id} defaultValue={seller.store_name} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm" /></label>
+                      <label className="text-xs font-bold">Số điện thoại<input id={"seller-phone-" + seller.id} defaultValue={seller.phone} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm" /></label>
+                      <label className="text-xs font-bold">Số điện thoại Zalo<input id={"seller-zalo-" + seller.id} defaultValue={seller.zalo_phone || ""} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm" /></label>
+                      <label className="text-xs font-bold">Danh mục bán<select id={"seller-category-" + seller.id} defaultValue={seller.category_id} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm">{sellerCategories.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+                      <label className="text-xs font-bold md:col-span-2">Khu vực<select id={"seller-location-" + seller.id} defaultValue={seller.location_id} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm">{sellerLocations.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" onClick={() => updateSellerProfile(seller)} className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white">Lưu thay đổi</button>
+                      <button type="button" onClick={() => setEditingSellerId(null)} className="rounded-lg border bg-white px-4 py-2 text-xs font-bold">Hủy</button>
+                    </div>
+                  </div>
+                )}
                 {seller.rejection_reason && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">Lý do: {seller.rejection_reason}</p>}
               </div>
             ))}
