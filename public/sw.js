@@ -5,8 +5,6 @@ self.addEventListener("push",(event)=>{
   try{payload={...payload,...(event.data?event.data.json():{})}}catch{}
   event.waitUntil(self.registration.showNotification(payload.title,{
     body:payload.body,
-    icon:"/logo.png",
-    badge:"/logo.png",
     tag:payload.type||"ptmarket",
     data:{url:payload.url||"/"}
   }));
