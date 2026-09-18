@@ -15,7 +15,7 @@ export default function SearchPage(){
   const term=q.trim(); if(term) query=query.or("title.ilike.%"+term+"%,description.ilike.%"+term+"%");
   if(cat) query=query.eq("category_id",cat); if(loc) query=query.eq("location_id",loc);
   if(condition) query=query.eq("condition",condition); if(min) query=query.gte("price",Number(min)); if(max) query=query.lte("price",Number(max));
-  query=query.order("created_at",{ascending:false}); if(sort==="price_asc") query=query.order("price",{ascending:true}); if(sort==="price_desc") query=query.order("price",{ascending:false});
+  if(sort==="price_asc") query=query.order("price",{ascending:true}).order("created_at",{ascending:false}); else if(sort==="price_desc") query=query.order("price",{ascending:false}).order("created_at",{ascending:false}); else query=query.order("created_at",{ascending:false});
   const{data}=await query.limit(60); setItems(data||[]); setLoading(false);
  }
  useEffect(()=>{const p=new URLSearchParams(window.location.search);setQ(p.get("q")||"");Promise.all([
