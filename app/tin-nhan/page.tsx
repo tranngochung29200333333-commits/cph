@@ -1,14 +1,16 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Header from "../../components/Header";
 import AuthGuard from "../../components/AuthGuard";
-import {MessageCircle, Send} from "lucide-react";
-import {supabaseBrowser} from "../../lib/supabase-browser";
+import { MessageCircle, Send } from "lucide-react";
+import { supabaseBrowser } from "../../lib/supabase-browser";
 
 type Message = {
   id: string;
+  listing_id?: string | null;
   sender_id: string;
   receiver_id: string;
   body: string;
@@ -16,7 +18,13 @@ type Message = {
   read_at?: string | null;
 };
 
+function getQuery(name: string) {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 export default function MessagesPage() {
+  const pathname = usePathname();
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [user, setUser] = useState<any>(null);
@@ -27,103 +35,212 @@ export default function MessagesPage() {
   const [realtime, setRealtime] = useState(false);
   const [error, setError] = useState("");
 
-  const getListingId = () =>
-    new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("listing");
-
-  const getPartnerId = () =>
-    new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("with");
+  const getListingId = () => getQuery("listing");
+  const getPartnerId = () => getQuery("with");
 
   async function loadInbox(u: any) {
-    const {data: rows} = await supabaseBrowser
+    setError("");
+
+    const { data: rows, error: messageError } = await supabaseBrowser
       .from("messages")
       .select("id,listing_id,sender_id,receiver_id,body,created_at,read_at")
       .or("sender_id.eq." + u.id + ",receiver_id.eq." + u.id)
-      .order("created_at", {ascending: false})
-      .limit(200);
+      .order("created_at", { ascending: false })
+      .limit(500);
 
-    const ids = [...new Set((rows || []).map((x: any) => x.listing_id).filter(Boolean))];
-    const partners = [...new Set((rows || []).map((x: any) => x.sender_id === u.id ? x.receiver_id : x.sender_id).filter(Boolean))];
-
-    if (!ids.length) {
+    if (messageError) {
+      setError(messageError.message);
       setInbox([]);
       return;
     }
 
-    const {data: ps} = partners.length ? await supabaseBrowser.from("profiles").select("id,full_name,avatar_url").in("id", partners) : {data: []};
+    const allMessages = rows || [];
+    const listingIds = [
+      ...new Set(allMessages.map((x: any) => x.listing_id).filter(Boolean)),
+    ];
+    const partnerIds = [
+      ...new Set(
+        allMessages
+          .map((x: any) =>
+            x.sender_id === u.id ? x.receiver_id : x.sender_id
+          )
+          .filter(Boolean)
+      ),
+    ];
 
-    const {data: ls} = await supabaseBrowser
-      .from("listings")
-      .select("id,title,price,images,seller_id,profiles(full_name)")
-      .in("id", ids);
+    if (!listingIds.length) {
+      setInbox([]);
+      return;
+    }
 
-    const byId = new Map((ls || []).map((x: any) => [x.id, x]));
-    const byProfile = new Map((ps || []).map((x: any) => [x.id, x]));
-    const seen = new Set<string>();
+    const [profileResult, listingResult] = await Promise.all([
+      partnerIds.length
+        ? supabaseBrowser
+            .from("profiles")
+            .select("id,full_name,avatar_url")
+            .in("id", partnerIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabaseBrowser
+        .from("listings")
+        .select("id,title,price,images,seller_id,status")
+        .in("id", listingIds),
+    ]);
 
-    setInbox(
-      (rows || [])
-        .filter((x: any) => {
-          const partner = x.sender_id === u.id ? x.receiver_id : x.sender_id;
-          const key = x.listing_id + ":" + partner;
-          if (!x.listing_id || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .map((x: any) => ({...x, listing: byId.get(x.listing_id), partner_id: x.sender_id === u.id ? x.receiver_id : x.sender_id, partner: byProfile.get(x.sender_id === u.id ? x.receiver_id : x.sender_id), unread: (rows || []).filter((m: any) => m.listing_id === x.listing_id && m.sender_id === (x.sender_id === u.id ? x.receiver_id : x.sender_id) && m.receiver_id === u.id && !m.read_at).length}))
-        .filter((x: any) => x.listing)
+    if (profileResult.error || listingResult.error) {
+      setError(
+        profileResult.error?.message ||
+          listingResult.error?.message ||
+          "Không tải được dữ liệu cuộc trò chuyện."
+      );
+      setInbox([]);
+      return;
+    }
+
+    const profileMap = new Map(
+      (profileResult.data || []).map((x: any) => [x.id, x])
     );
+    const listingMap = new Map(
+      (listingResult.data || []).map((x: any) => [x.id, x])
+    );
+    const seen = new Set<string>();
+    const conversations: any[] = [];
+
+    for (const row of allMessages) {
+      if (!row.listing_id) continue;
+
+      const partnerId =
+        row.sender_id === u.id ? row.receiver_id : row.sender_id;
+      const key = row.listing_id + ":" + partnerId;
+
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const item = listingMap.get(row.listing_id);
+      if (!item) continue;
+
+      const unread = allMessages.filter(
+        (m: any) =>
+          m.listing_id === row.listing_id &&
+          m.sender_id === partnerId &&
+          m.receiver_id === u.id &&
+          !m.read_at
+      ).length;
+
+      conversations.push({
+        ...row,
+        listing: item,
+        partner_id: partnerId,
+        partner: profileMap.get(partnerId),
+        unread,
+      });
+    }
+
+    setInbox(conversations);
   }
 
-  async function loadConversation(u: any, lid: string, partnerId?: string | null) {
-    const {data: l} = await supabaseBrowser
-      .from("listings")
-      .select("id,title,price,images,seller_id,profiles(full_name)")
-      .eq("id", lid)
-      .maybeSingle();
+  async function loadConversation(
+    u: any,
+    listingId: string,
+    partnerId?: string | null
+  ) {
+    setError("");
 
-    setListing(l);
+    const [listingResult, messageResult] = await Promise.all([
+      supabaseBrowser
+        .from("listings")
+        .select("id,title,price,images,seller_id,status")
+        .eq("id", listingId)
+        .maybeSingle(),
+      supabaseBrowser
+        .from("messages")
+        .select(
+          "id,listing_id,sender_id,receiver_id,body,created_at,read_at"
+        )
+        .eq("listing_id", listingId)
+        .or("sender_id.eq." + u.id + ",receiver_id.eq." + u.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
-    if (!l) {
+    if (listingResult.error || messageResult.error) {
+      setError(
+        listingResult.error?.message ||
+          messageResult.error?.message ||
+          "Không tải được cuộc trò chuyện."
+      );
+      setListing(null);
       setMessages([]);
       return;
     }
 
-    const {data} = await supabaseBrowser
-      .from("messages")
-      .select("id,sender_id,receiver_id,body,created_at,read_at")
-      .eq("listing_id", lid)
-      .or("sender_id.eq." + u.id + ",receiver_id.eq." + u.id)
-      .order("created_at", {ascending: true});
+    const currentListing = listingResult.data;
+    const allMessages = messageResult.data || [];
 
-    const conversation = (data || []).filter((m: any) => !partnerId || ((m.sender_id === u.id && m.receiver_id === partnerId) || (m.sender_id === partnerId && m.receiver_id === u.id)));
+    setListing(currentListing);
+
+    if (!currentListing) {
+      setMessages([]);
+      return;
+    }
+
+    const conversation = allMessages.filter(
+      (m: any) =>
+        !partnerId ||
+        (m.sender_id === u.id && m.receiver_id === partnerId) ||
+        (m.sender_id === partnerId && m.receiver_id === u.id)
+    );
+
     setMessages(conversation);
 
-    if (partnerId && partnerId !== u.id) {
-      await supabaseBrowser.from("messages").update({read_at: new Date().toISOString()}).eq("listing_id", lid).eq("sender_id", partnerId).eq("receiver_id", u.id).is("read_at", null);
+    const partnerIds = [
+      ...new Set(
+        conversation
+          .map((m: any) =>
+            m.sender_id === u.id ? m.receiver_id : m.sender_id
+          )
+          .filter((id: string) => id && id !== u.id)
+      ),
+    ];
+
+    if (partnerIds.length) {
+      await supabaseBrowser
+        .from("profiles")
+        .select("id,full_name,avatar_url")
+        .in("id", partnerIds);
     }
 
     await supabaseBrowser
       .from("messages")
-      .update({read_at: new Date().toISOString()})
-      .eq("listing_id", lid)
+      .update({ read_at: new Date().toISOString() })
+      .eq("listing_id", listingId)
       .eq("receiver_id", u.id)
       .is("read_at", null);
   }
 
   async function load() {
-    const {data: {user: u}} = await supabaseBrowser.auth.getUser();
-    setUser(u);
+    setLoading(true);
+    setError("");
 
-    if (!u) {
+    const {
+      data: { user: currentUser },
+    } = await supabaseBrowser.auth.getUser();
+
+    setUser(currentUser);
+
+    if (!currentUser) {
       setLoading(false);
       return;
     }
 
-    const lid = getListingId();
-    const partner = getPartnerId();
+    const listingId = getListingId();
+    const partnerId = getPartnerId();
 
-    if (lid) await loadConversation(u, lid, partner);
-    else await loadInbox(u);
+    if (listingId) {
+      await loadConversation(currentUser, listingId, partnerId);
+    } else {
+      setListing(null);
+      setMessages([]);
+      await loadInbox(currentUser);
+    }
 
     setLoading(false);
   }
@@ -134,30 +251,32 @@ export default function MessagesPage() {
     (async () => {
       await load();
 
-      const {data: {user: u}} = await supabaseBrowser.auth.getUser();
-      const lid = getListingId();
-      const partner = getPartnerId();
+      const {
+        data: { user: currentUser },
+      } = await supabaseBrowser.auth.getUser();
 
-      if (!u) return;
+      if (!currentUser) return;
+
+      const listingId = getListingId();
 
       channel = supabaseBrowser
-        .channel(lid ? "messages-listing-" + lid : "messages-inbox-" + u.id)
+        .channel(
+          listingId
+            ? "messages-listing-" + listingId
+            : "messages-inbox-" + currentUser.id
+        )
         .on(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
             table: "messages",
-            filter: lid
-              ? "listing_id=eq." + lid
-              : "receiver_id=eq." + u.id
+            filter: listingId
+              ? "listing_id=eq." + listingId
+              : "receiver_id=eq." + currentUser.id,
           },
           async () => {
-            if (lid) {
-              await loadConversation(u, lid, partner);
-            } else {
-              await loadInbox(u);
-            }
+            await load();
           }
         )
         .subscribe((status) => {
@@ -168,32 +287,38 @@ export default function MessagesPage() {
     return () => {
       if (channel) supabaseBrowser.removeChannel(channel);
     };
-  }, []);
+  }, [pathname]);
 
   async function send() {
     const body = text.trim();
     if (!body || !user || !listing || sending) return;
 
-    const receiverId = getPartnerId() || (user.id === listing.seller_id
-      ? messages.find((m) => m.sender_id !== user.id)?.sender_id
-      : listing.seller_id);
+    const partnerId = getPartnerId();
+    const receiverId =
+      partnerId ||
+      (user.id === listing.seller_id
+        ? messages.find((m) => m.sender_id !== user.id)?.sender_id
+        : listing.seller_id);
 
     if (!receiverId || receiverId === user.id) {
-      alert("Chưa có người mua để trả lời.");
+      window.alert("Chưa xác định được người nhận tin nhắn.");
       return;
     }
 
     setSending(true);
 
-    const {error} = await supabaseBrowser.from("messages").insert({
-      listing_id: listing.id,
-      sender_id: user.id,
-      receiver_id: receiverId,
-      body
-    });
+    const { error: insertError } = await supabaseBrowser
+      .from("messages")
+      .insert({
+        listing_id: listing.id,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        body,
+      });
 
-    if (error) alert(error.message);
-    else {
+    if (insertError) {
+      window.alert(insertError.message);
+    } else {
       setText("");
       await loadConversation(user, listing.id, receiverId);
     }
@@ -209,7 +334,9 @@ export default function MessagesPage() {
           <>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Trao đổi</p>
+                <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
+                  Trao đổi
+                </p>
                 <h1 className="mt-1 text-3xl font-black">Tin nhắn</h1>
                 <p className="mt-2 text-sm text-slate-500">
                   {realtime ? "Đang kết nối realtime" : "Đang kết nối..."}
@@ -218,30 +345,68 @@ export default function MessagesPage() {
               <MessageCircle className="text-brand-600" />
             </div>
 
+            {error && (
+              <div className="card mt-5 border-red-200 p-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {loading ? (
-              <div className="py-10 text-center text-slate-500">Đang tải...</div>
+              <div className="py-10 text-center text-slate-500">
+                Đang tải...
+              </div>
             ) : !inbox.length ? (
               <div className="card mt-6 p-10 text-center text-slate-500">
                 Bạn chưa có cuộc trò chuyện nào.
               </div>
             ) : (
               <div className="mt-6 grid gap-3">
-                {inbox.map((x) => (
+                {inbox.map((item) => (
                   <Link
-                    key={x.id}
-                    href={"/tin-nhan?listing=" + encodeURIComponent(x.listing_id) + "&with=" + encodeURIComponent(x.partner_id)}
+                    key={item.id}
+                    href={
+                      "/tin-nhan?listing=" +
+                      encodeURIComponent(item.listing_id) +
+                      "&with=" +
+                      encodeURIComponent(item.partner_id)
+                    }
                     className="card flex gap-4 p-4 hover:shadow-soft"
                   >
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                      {x.listing.images?.[0] && (
-                        <img src={x.listing.images[0]} alt="" className="h-full w-full object-cover" />
+                      {item.listing.images?.[0] && (
+                        <img
+                          src={item.listing.images[0]}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3"><h2 className="truncate font-black">{x.listing.title}</h2>{x.unread > 0 && <span className="shrink-0 rounded-full bg-brand-600 px-2 py-1 text-[10px] font-black text-white">{x.unread}</span>}</div><p className="mt-1 truncate text-xs font-bold text-brand-700">{x.partner?.full_name || "Người dùng"}</p>
-                      <p className="mt-1 truncate text-sm text-slate-500">{x.body}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="truncate font-black">
+                          {item.listing.title}
+                        </h2>
+                        {item.unread > 0 && (
+                          <span className="shrink-0 rounded-full bg-brand-600 px-2 py-1 text-[10px] font-black text-white">
+                            {item.unread}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 flex items-center gap-2 truncate text-xs font-bold text-brand-700">
+                        {item.partner?.avatar_url && (
+                          <img
+                            src={item.partner.avatar_url}
+                            alt=""
+                            className="h-5 w-5 shrink-0 rounded-full object-cover"
+                          />
+                        )}
+                        {item.partner?.full_name || "Người dùng"}
+                      </p>
+                      <p className="mt-1 truncate text-sm text-slate-500">
+                        {item.body}
+                      </p>
                       <p className="mt-1 text-xs text-slate-400">
-                        {new Date(x.created_at).toLocaleString("vi-VN")}
+                        {new Date(item.created_at).toLocaleString("vi-VN")}
                       </p>
                     </div>
                   </Link>
@@ -251,42 +416,68 @@ export default function MessagesPage() {
           </>
         ) : (
           <>
-            <Link href="/tin-nhan" className="text-sm font-bold text-brand-700">
+            <Link
+              href="/tin-nhan"
+              className="text-sm font-bold text-brand-700"
+            >
               ← Tất cả tin nhắn
             </Link>
 
+            {error && (
+              <div className="card mt-5 border-red-200 p-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {loading ? (
-              <div className="py-10 text-center text-slate-500">Đang tải...</div>
+              <div className="py-10 text-center text-slate-500">
+                Đang tải...
+              </div>
             ) : !listing ? (
-              <div className="card mt-5 p-10 text-center">Không tìm thấy tin.</div>
+              <div className="card mt-5 p-10 text-center">
+                Không tìm thấy tin.
+              </div>
             ) : (
               <div className="mx-auto mt-5 max-w-2xl card overflow-hidden">
                 <div className="border-b p-5">
-                  <p className="text-xs font-bold text-brand-600">TRAO ĐỔI VỀ TIN</p>
+                  <p className="text-xs font-bold text-brand-600">
+                    TRAO ĐỔI VỀ TIN
+                  </p>
                   <h1 className="mt-1 font-black">{listing.title}</h1>
                   <p className="mt-1 text-sm text-slate-500">
-                    Người bán: {listing.profiles?.full_name || "Người bán"}
+                    Người bán: {listing.seller_id === user?.id
+                      ? "Bạn"
+                      : "Người bán"}
                   </p>
                   <p className="mt-2 text-xs text-slate-400">
-                    {realtime ? "● Realtime đang hoạt động" : "○ Đang kết nối realtime"}
+                    {realtime
+                      ? "● Realtime đang hoạt động"
+                      : "○ Đang kết nối realtime"}
                   </p>
                 </div>
 
                 <div className="min-h-[360px] space-y-3 bg-slate-50 p-5">
-                  {messages.map((m) => (
+                  {messages.map((message) => (
                     <div
-                      key={m.id}
-                      className={"flex " + (m.sender_id === user?.id ? "justify-end" : "justify-start")}
+                      key={message.id}
+                      className={
+                        "flex " +
+                        (message.sender_id === user?.id
+                          ? "justify-end"
+                          : "justify-start")
+                      }
                     >
                       <div
                         className={
                           "max-w-[80%] rounded-2xl px-4 py-3 text-sm " +
-                          (m.sender_id === user?.id ? "bg-brand-600 text-white" : "border bg-white")
+                          (message.sender_id === user?.id
+                            ? "bg-brand-600 text-white"
+                            : "border bg-white")
                         }
                       >
-                        {m.body}
+                        {message.body}
                         <div className="mt-1 text-[10px] opacity-60">
-                          {new Date(m.created_at).toLocaleString("vi-VN")}
+                          {new Date(message.created_at).toLocaleString("vi-VN")}
                         </div>
                       </div>
                     </div>
@@ -318,6 +509,7 @@ export default function MessagesPage() {
                     className="min-w-0 flex-1 rounded-xl border px-4 py-3 text-sm outline-none focus:border-brand-400"
                   />
                   <button
+                    type="button"
                     disabled={sending || !text.trim()}
                     onClick={send}
                     className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-5 font-extrabold text-white disabled:opacity-50"
