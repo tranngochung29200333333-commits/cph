@@ -24,6 +24,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://uhfjepvfslbqubboxejt.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_EnrhjEDLfHPUhWZUGiY57g_HQYWFrAe
       - uses: actions/configure-pages@v5
+      - name: Preserve custom domain in Pages artifact
+        run: |
+          cp CNAME ./out/CNAME
+          touch ./out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
