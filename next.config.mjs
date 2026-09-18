@@ -1,1 +1,1 @@
-const nextConfig={output:"export",basePath:"/cph",trailingSlash:true,images:{unoptimized:true,remotePatterns:[{protocol:"https",hostname:"images.unsplash.com"}]}};export default nextConfig;
+const nextConfig={output:"export",trailingSlash:true,images:{unoptimized:true,remotePatterns:[{protocol:"https",hostname:"images.unsplash.com"}]}};export default nextConfig;
