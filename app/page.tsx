@@ -284,19 +284,19 @@ export default function Home() {
           <div className="grid gap-5 md:grid-cols-3">
             {[
               {
-                i: Smartphone,
-                t: "Hồ sơ nhà bán hàng",
-                d: "Mỗi người bán có một profile riêng để khách xem thông tin và các sản phẩm đang bán.",
+                i: Store,
+                t: "Nhà bán hàng",
+                d: "Xem profile và các sản phẩm đang bán.",
               },
               {
                 i: ShieldCheck,
-                t: "Dữ liệu an toàn",
-                d: "Supabase Auth và RLS giúp kiểm soát dữ liệu tài khoản và tin đăng.",
+                t: "Đã xác minh",
+                d: "Nhà bán hàng được kiểm duyệt trước khi đăng sản phẩm.",
               },
               {
-                i: Store,
-                t: "Đúng cộng đồng địa phương",
-                d: "Kết nối người mua và người bán trong cùng khu vực Phú Thọ.",
+                i: Smartphone,
+                t: "Liên hệ hỗ trợ",
+                d: "Cần hỗ trợ? Nhắn Zalo cho Phú Thọ Market.",
               },
             ].map(({ i: Icon, t, d }) => (
               <div
@@ -334,10 +334,16 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <h3 className="font-black">Nhà bán hàng</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                Khách có thể vào profile từng nhà bán hàng để xem toàn bộ sản phẩm hiện đang được bán.
-              </p>
+              <h3 className="font-black">Thông tin liên hệ</h3>
+              <p className="mt-3 text-sm text-slate-500">Zalo:</p>
+              <a
+                href="https://zalo.me/0353109444"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-flex text-sm font-extrabold text-brand-700 hover:underline"
+              >
+                0353109444 · Nhắn tin Zalo
+              </a>
             </div>
           </div>
         </div>
