@@ -157,7 +157,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-            {categories.slice(0, 10).map((category) => (
+            {categories.filter((category) => ["quan-an", "dien-thoai", "viec-lam", "dich-vu"].includes(category.slug)).slice(0, 4).map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
           </div>
@@ -328,8 +328,8 @@ export default function Home() {
             <div>
               <h3 className="font-black">Khám phá</h3>
               <div className="mt-3 grid gap-2 text-sm text-slate-500">
-                <Link href="#danh-muc">Danh mục</Link>
-                <Link href="#khu-vuc">Khu vực</Link>
+                <Link href="/danh-muc">Danh mục</Link>
+                <Link href="/khu-vuc">Khu vực</Link>
                 <Link href="/dang-tin">Đăng tin</Link>
               </div>
             </div>
