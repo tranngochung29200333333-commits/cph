@@ -60,7 +60,7 @@ export default function Header(){
         <Link href="/tin-nhan" className="rounded-xl p-2.5 text-slate-600" title="Tin nhắn"><MessageIcon unread={unread}/></Link>
         {ready&&user ? (
           <>
-            {isAdmin&&<Link href="/admin" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Quản trị</Link>}
+            {isAdmin&&<Link href="/admin" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Quản trị</Link>}<Link href="/dang-ky-nha-ban-hang" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Đăng ký nhà bán hàng</Link>
             <Link href="/tai-khoan" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"><UserRound size={17}/><span className="max-w-28 truncate">{user.user_metadata?.full_name||"Tài khoản"}</span></Link>
             <button onClick={signout} className="rounded-xl p-2.5 text-slate-500" title="Đăng xuất" aria-label="Đăng xuất"><LogOut size={18}/></button>
           </>
