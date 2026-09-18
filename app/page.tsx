@@ -21,7 +21,7 @@ type Seller = {
   avatar_url: string | null;
   listingCount: number;
   latestTitle: string;
-  latestImage: string | null;
+  categoryName: string;
 };
 
 
@@ -41,7 +41,7 @@ export default function Home() {
       const allCategories = (categoryData || []) as Category[];
       const { data: sellerRegistrations } = await supabaseBrowser
         .from("seller_registrations")
-        .select("user_id,store_name")
+        .select("user_id,store_name,category_id")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(50);
@@ -58,6 +58,11 @@ export default function Home() {
             .limit(100)
         : { data: [] };
       const listings = listingData || [];
+      const categoryIds = registrations.map((item: any) => item.category_id).filter(Boolean);
+      const { data: sellerCategories } = categoryIds.length
+        ? await supabaseBrowser.from("categories").select("id,name").in("id", categoryIds)
+        : { data: [] };
+      const categoryMap = new Map((sellerCategories || []).map((item: any) => [item.id, item.name]));
 
       let profileData: any[] = [];
       if (sellerIds.length) {
@@ -87,8 +92,8 @@ export default function Home() {
           full_name: registrationMap.get(item.seller_id)?.store_name || profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           listingCount: 1,
+          categoryName: categoryMap.get(registrationMap.get(item.seller_id)?.category_id) || "Sản phẩm",
           latestTitle: item.title,
-          latestImage: item.images?.[0] || null,
         });
       }
 
@@ -188,54 +193,26 @@ export default function Home() {
                     href={"/nguoi-ban?id=" + encodeURIComponent(seller.id)}
                     className="group overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 hover:shadow-soft"
                   >
-                    <div className="aspect-[4/3] overflow-hidden bg-slate-100">
-                      {seller.latestImage ? (
-                        <img
-                          src={seller.latestImage}
-                          alt=""
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="grid h-full place-items-center text-4xl">
-                          🏪
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border bg-slate-100">
+                    <div className="flex items-center gap-4 p-5">
+                      <div className="relative h-20 w-20 shrink-0">
+                        <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-brand-100 bg-slate-100">
                           {seller.avatar_url ? (
-                            <img
-                              src={seller.avatar_url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
+                            <img src={seller.avatar_url} alt="" className="h-full w-full object-cover" />
                           ) : (
-                            <div className="grid h-full place-items-center text-lg">
-                              👤
-                            </div>
+                            <div className="grid h-full w-full place-items-center text-2xl">👤</div>
                           )}
                         </div>
-
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-black">
-                            {seller.full_name || "Nhà bán hàng"}
-                          </h3>
-                          <p className="mt-1 inline-flex items-center gap-1 text-xs font-extrabold text-brand-700">✓ Đã xác minh</p>
-                          <p className="mt-1 text-xs font-bold text-brand-700">
-                            {seller.listingCount} sản phẩm đang bán
-                          </p>
-                        </div>
+                        <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-brand-600 text-xs font-black text-white">✓</span>
                       </div>
-
-                      <p className="mt-3 line-clamp-2 text-xs text-slate-500">
-                        {seller.latestTitle}
-                      </p>
-
-                      <div className="mt-3 flex items-center gap-1 text-xs font-extrabold text-brand-700">
-                        Xem profile & sản phẩm <ArrowRight size={14} />
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-black">{seller.full_name || "Nhà bán hàng"}</h3>
+                        <p className="mt-1 text-xs font-extrabold text-brand-700">Đã xác minh</p>
+                        <p className="mt-2 text-xs font-bold text-slate-600">{seller.listingCount} sản phẩm</p>
+                        <p className="mt-1 truncate text-xs text-slate-500">Danh mục: {seller.categoryName}</p>
                       </div>
+                    </div>
+                    <div className="border-t px-5 py-3 text-xs font-extrabold text-brand-700">
+                      Xem profile & sản phẩm <ArrowRight size={14} className="inline" />
                     </div>
                   </Link>
                 ))}
