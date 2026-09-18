@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {LogIn,Plus,Heart,MessageCircle,UserRound,Search,Home,LogOut,ArrowLeft} from "lucide-react";
+import {LogIn,Plus,Heart,MessageCircle,UserRound,Search,Home,LogOut,ArrowLeft,ShoppingCart} from "lucide-react";
 import {useEffect,useState} from "react";
 import {usePathname} from "next/navigation";
 import Logo from "./Logo";
@@ -26,6 +26,13 @@ export default function Header(){
   const[ready,setReady]=useState(false);
   const[isAdmin,setIsAdmin]=useState(false);
   const[isVerifiedSeller,setIsVerifiedSeller]=useState(false);
+  const[cartCount,setCartCount]=useState(0);
+
+  useEffect(()=>{
+    const loadCart=()=>{try{setCartCount(JSON.parse(localStorage.getItem("ptmarket-cart")||"[]").reduce((n:any,i:any)=>n+(Number(i.quantity)||0),0))}catch{setCartCount(0)}};
+    loadCart();window.addEventListener("ptmarket-cart-updated",loadCart);
+    return()=>window.removeEventListener("ptmarket-cart-updated",loadCart);
+  },[]);
 
   useEffect(()=>{
     let active=true;
@@ -76,6 +83,7 @@ export default function Header(){
       <Link href="/dang-tin" className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-3 sm:h-auto sm:px-4 sm:py-2.5 text-sm font-bold text-white hover:bg-brand-700" aria-label="Đăng tin"><Plus size={18}/><span className="hidden sm:inline">Đăng tin</span></Link>
     </div>
     {pathname!=="/"&&<div className="border-t bg-white md:hidden"><div className="container-page h-11 flex items-center"><Link href="/" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-slate-600 active:text-brand-700" aria-label="Quay về trang chủ"><ArrowLeft size={17}/>Trang chủ</Link></div></div>}
+    <Link href="/gio-hang" aria-label={"Giỏ hàng, "+cartCount+" sản phẩm"} className="fixed bottom-20 left-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg md:bottom-6 md:left-6"><ShoppingCart size={24}/>{cartCount>0&&<span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-red-500 px-1.5 py-1 text-center text-xs font-black text-white">{cartCount}</span>}</Link>
     <nav aria-label="Điều hướng trên điện thoại" className="mobile-bottom-nav md:hidden">
       {mobileItems.map(({href,label,icon:Icon})=><Link key={href} href={href} className="mobile-nav-item">{href==="/tin-nhan"?<MessageIcon unread={unread}/>:<Icon size={19}/>}<span>{label}</span></Link>)}
     </nav>
