@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 import Link from "next/link";
 import {supabaseBrowser} from "../../lib/supabase-browser";
 import AuthGuard from "../../components/AuthGuard";
@@ -8,33 +8,64 @@ const money=new Intl.NumberFormat("vi-VN");
 const labels:Record<string,string>={published:"Đang hiển thị",pending:"Chờ duyệt",sold:"Đã bán",rejected:"Từ chối"};
 
 export default function AccountClient(){
-  const[items,setItems]=useState<any[]>([]); const[user,setUser]=useState<any>(null); const[loading,setLoading]=useState(true); const[action,setAction]=useState("");
+  const[items,setItems]=useState<any[]>([]); const[user,setUser]=useState<any>(null); const[profile,setProfile]=useState<any>(null);
+  const[loading,setLoading]=useState(true); const[savingProfile,setSavingProfile]=useState(false); const[action,setAction]=useState("");
+  const[fullName,setFullName]=useState(""); const[phone,setPhone]=useState(""); const[notice,setNotice]=useState("");
+
   async function load(){
     setLoading(true);
     const{data:{user:u}}=await supabaseBrowser.auth.getUser(); setUser(u);
-    if(u){const{data}=await supabaseBrowser.from("listings").select("id,title,price,status,created_at,rejection_reason").eq("seller_id",u.id).order("created_at",{ascending:false});setItems(data||[])}
+    if(u){
+      const[p,l]=await Promise.all([
+        supabaseBrowser.from("profiles").select("full_name,phone,avatar_url").eq("id",u.id).maybeSingle(),
+        supabaseBrowser.from("listings").select("id,title,price,status,created_at,rejection_reason").eq("seller_id",u.id).order("created_at",{ascending:false})
+      ]);
+      setProfile(p.data||null); setFullName(p.data?.full_name||u.user_metadata?.full_name||""); setPhone(p.data?.phone||u.user_metadata?.phone||""); setItems(l.data||[]);
+    }
     setLoading(false);
   }
   useEffect(()=>{load()},[]);
+
+  const stats=useMemo(()=>({all:items.length,published:items.filter(x=>x.status==="published").length,pending:items.filter(x=>x.status==="pending").length,sold:items.filter(x=>x.status==="sold").length}),[items]);
+
+  async function saveProfile(){
+    if(!user)return; setSavingProfile(true); setNotice("");
+    const{error}=await supabaseBrowser.from("profiles").update({full_name:fullName.trim()||null,phone:phone.trim()||null}).eq("id",user.id);
+    if(error)setNotice(error.message); else {setNotice("Đã cập nhật thông tin tài khoản.");setProfile({...profile,full_name:fullName.trim(),phone:phone.trim()})}
+    setSavingProfile(false);
+  }
   async function changeStatus(id:string,status:"sold"|"pending"){
     setAction(id+status);
     const{error}=await supabaseBrowser.from("listings").update({status,rejection_reason:null}).eq("id",id);
-    if(error) alert(error.message); else await load();
-    setAction("");
+    if(error) alert(error.message); else await load(); setAction("");
   }
   async function remove(id:string){
     if(!confirm("Bạn chắc chắn muốn xóa tin này?")) return;
     setAction(id+"delete");
     const{error}=await supabaseBrowser.from("listings").delete().eq("id",id);
-    if(error) alert(error.message); else await load();
-    setAction("");
+    if(error) alert(error.message); else await load(); setAction("");
   }
-  async function signout(){await supabaseBrowser.auth.signOut();window.location.href=window.location.origin+window.location.pathname.replace(/\/tai-khoan\/?$/,"/");}
+  async function signout(){await supabaseBrowser.auth.signOut();window.location.href=window.location.origin+window.location.pathname.replace(/\\/tai-khoan\\/?$/,"/");}
+
   return <AuthGuard>
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Tài khoản</p><h1 className="mt-1 text-3xl font-black">Quản lý tin của tôi</h1><p className="mt-2 text-slate-500">{user?.email}</p></div>
+      <div><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Tài khoản</p><h1 className="mt-1 text-3xl font-black">Tài khoản của tôi</h1><p className="mt-2 text-slate-500">{user?.email}</p></div>
       <div className="flex flex-wrap gap-2"><Link href="/yeu-thich" className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">❤️ Yêu thích</Link><Link href="/tin-nhan" className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">💬 Tin nhắn</Link><Link href="/dang-tin" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white">+ Đăng tin</Link><button onClick={signout} className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">Đăng xuất</button></div>
     </div>
+
+    <div className="mt-7 grid gap-3 sm:grid-cols-4">
+      {[["Tổng tin",stats.all],["Đang hiển thị",stats.published],["Chờ duyệt",stats.pending],["Đã bán",stats.sold]].map(([label,value])=><div key={String(label)} className="card p-4"><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-1 text-2xl font-black text-brand-700">{value}</p></div>)}
+    </div>
+
+    <div className="card mt-5 p-5 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">Thông tin cá nhân</h2><p className="mt-1 text-sm text-slate-500">Tên và số điện thoại sẽ được dùng khi bạn đăng tin.</p></div></div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <label className="text-sm font-bold">Họ và tên<input value={fullName} onChange={e=>setFullName(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2.5 font-normal outline-none focus:border-brand-500"/></label>
+        <label className="text-sm font-bold">Số điện thoại<input value={phone} onChange={e=>setPhone(e.target.value.replace(/[^0-9+ ]/g,""))} inputMode="tel" className="mt-1 w-full rounded-xl border px-3 py-2.5 font-normal outline-none focus:border-brand-500"/></label>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-3"><button disabled={savingProfile} onClick={saveProfile} className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white">{savingProfile?"Đang lưu...":"Lưu thông tin"}</button>{notice&&<span className="text-sm text-slate-600">{notice}</span>}</div>
+    </div>
+
     <div className="card mt-7 overflow-hidden">
       {loading?<div className="p-8">Đang tải...</div>:!items.length?<div className="p-10 text-center text-slate-500">Bạn chưa có tin đăng.</div>:
       <div className="divide-y">{items.map(x=><div key={x.id} className="p-5">
