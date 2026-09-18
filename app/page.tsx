@@ -24,18 +24,6 @@ type Seller = {
   latestImage: string | null;
 };
 
-const techSlugs = [
-  "dien-thoai",
-  "laptop",
-  "may-tinh",
-  "may-tinh-bang",
-  "do-dien-tu",
-  "linh-kien-dien-tu",
-  "man-hinh",
-  "phu-kien-cong-nghe",
-];
-
-const money = new Intl.NumberFormat("vi-VN");
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -51,25 +39,13 @@ export default function Home() {
         .order("name");
 
       const allCategories = (categoryData || []) as Category[];
-      const techCategoryIds = allCategories
-        .filter((category) => techSlugs.includes(category.slug))
-        .map((category) => category.id);
-
-      let listingQuery = supabaseBrowser
+      const { data: listingData } = await supabaseBrowser
         .from("listings")
-        .select("id,seller_id,title,images,category_id,created_at")
+        .select("id,seller_id,title,images,created_at")
         .eq("status", "published")
         .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(100);
-
-      if (techCategoryIds.length) {
-        listingQuery = listingQuery.in("category_id", techCategoryIds);
-      } else {
-        listingQuery = listingQuery.limit(0);
-      }
-
-      const { data: listingData } = await listingQuery;
       const listings = listingData || [];
 
       const sellerIds = [...new Set(listings.map((item: any) => item.seller_id).filter(Boolean))];
@@ -179,20 +155,20 @@ export default function Home() {
             <div className="mb-5 flex items-end justify-between">
               <div>
                 <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
-                  Công nghệ
+                  Nhà bán hàng
                 </p>
                 <h2 className="mt-1 text-2xl font-black">
                   Nhà bán hàng
                 </h2>
               </div>
-              <Link href="/tim-kiem?category=dien-thoai" className="text-sm font-bold text-brand-700">
-                Tìm sản phẩm →
+              <Link href="/danh-muc" className="text-sm font-bold text-brand-700">
+                Xem danh mục →
               </Link>
             </div>
 
             {!sellers.length ? (
               <div className="card p-8 text-center text-slate-500">
-                Chưa có nhà bán hàng công nghệ đang hoạt động.
+                Chưa có nhà bán hàng đang hoạt động.
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
