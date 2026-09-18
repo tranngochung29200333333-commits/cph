@@ -39,16 +39,25 @@ export default function Home() {
         .order("name");
 
       const allCategories = (categoryData || []) as Category[];
-      const { data: listingData } = await supabaseBrowser
-        .from("listings")
-        .select("id,seller_id,title,images,created_at")
-        .eq("status", "published")
-        .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
+      const { data: sellerRegistrations } = await supabaseBrowser
+        .from("seller_registrations")
+        .select("user_id,store_name")
+        .eq("status", "approved")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(50);
+      const registrations = sellerRegistrations || [];
+      const sellerIds = registrations.map((item: any) => item.user_id).filter(Boolean);
+      const { data: listingData } = sellerIds.length
+        ? await supabaseBrowser
+            .from("listings")
+            .select("id,seller_id,title,images,created_at")
+            .in("seller_id", sellerIds)
+            .eq("status", "published")
+            .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
+            .order("created_at", { ascending: false })
+            .limit(100)
+        : { data: [] };
       const listings = listingData || [];
-
-      const sellerIds = [...new Set(listings.map((item: any) => item.seller_id).filter(Boolean))];
 
       let profileData: any[] = [];
       if (sellerIds.length) {
@@ -60,6 +69,7 @@ export default function Home() {
       }
 
       const profileMap = new Map(profileData.map((profile) => [profile.id, profile]));
+      const registrationMap = new Map(registrations.map((item: any) => [item.user_id, item]));
       const grouped = new Map<string, Seller>();
 
       for (const item of listings) {
@@ -74,7 +84,7 @@ export default function Home() {
         const profile = profileMap.get(item.seller_id);
         grouped.set(item.seller_id, {
           id: item.seller_id,
-          full_name: profile?.full_name || null,
+          full_name: registrationMap.get(item.seller_id)?.store_name || profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           listingCount: 1,
           latestTitle: item.title,
