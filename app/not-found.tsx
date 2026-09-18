@@ -1,2 +1,23 @@
 import Link from "next/link";
-export default function NotFound(){return <main className="min-h-screen bg-slate-50"><section className="container-page flex min-h-screen items-center justify-center py-10"><div className="card w-full max-w-lg p-8 text-center"><div className="text-6xl font-black text-brand-600">404</div><h1 className="mt-3 text-2xl font-black">Không tìm thấy trang</h1><p className="mt-2 text-slate-500">Trang bạn đang tìm có thể đã được chuyển hoặc không còn tồn tại.</p><Link href="/" className="mt-6 inline-flex rounded-xl bg-brand-600 px-5 py-3 font-extrabold text-white">Về trang chủ</Link></div></section></main>
+
+export default function NotFound() {
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <section className="container-page flex min-h-screen items-center justify-center py-10">
+        <div className="card w-full max-w-lg p-8 text-center">
+          <div className="text-6xl font-black text-brand-600">404</div>
+          <h1 className="mt-3 text-2xl font-black">Không tìm thấy trang</h1>
+          <p className="mt-2 text-slate-500">
+            Trang bạn đang tìm có thể đã được chuyển hoặc không còn tồn tại.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex rounded-xl bg-brand-600 px-5 py-3 font-extrabold text-white"
+          >
+            Về trang chủ
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
