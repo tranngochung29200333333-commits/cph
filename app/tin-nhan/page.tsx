@@ -24,7 +24,8 @@ export default function MessagesPage() {
   const [inbox, setInbox] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [realtime, setRealtime] = useState(false);\n  const [error, setError] = useState("");
+  const [realtime, setRealtime] = useState(false);
+  const [error, setError] = useState("");
 
   const getListingId = () =>
     new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("listing");
