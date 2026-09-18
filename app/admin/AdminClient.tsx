@@ -372,6 +372,7 @@ export default function AdminClient() {
           <button type="button" onClick={() => setTab("reports")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "reports" ? "bg-white shadow" : "")}>Báo cáo ({reports.length})</button>
           <button type="button" onClick={() => setTab("users")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "users" ? "bg-white shadow" : "")}>Người dùng ({users.length})</button>
           <button type="button" onClick={() => setTab("sellers")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "sellers" ? "bg-white shadow" : "")}>Nhà bán hàng ({pendingSellers})</button>
+          <button type="button" onClick={() => setTab("orders")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "orders" ? "bg-white shadow" : "")}>📦 Đơn hàng ({orders.length})</button>
         </div>
       </div>
 
