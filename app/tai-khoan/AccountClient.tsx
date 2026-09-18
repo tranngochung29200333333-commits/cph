@@ -33,7 +33,7 @@ export default function AccountClient(){
   return <AuthGuard>
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Tài khoản</p><h1 className="mt-1 text-3xl font-black">Quản lý tin của tôi</h1><p className="mt-2 text-slate-500">{user?.email}</p></div>
-      <div className="flex gap-2"><Link href="/dang-tin" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white">+ Đăng tin</Link><button onClick={signout} className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">Đăng xuất</button></div>
+      <div className="flex flex-wrap gap-2"><Link href="/yeu-thich" className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">❤️ Yêu thích</Link><Link href="/tin-nhan" className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">💬 Tin nhắn</Link><Link href="/dang-tin" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white">+ Đăng tin</Link><button onClick={signout} className="rounded-xl border bg-white px-4 py-2.5 text-sm font-bold">Đăng xuất</button></div>
     </div>
     <div className="card mt-7 overflow-hidden">
       {loading?<div className="p-8">Đang tải...</div>:!items.length?<div className="p-10 text-center text-slate-500">Bạn chưa có tin đăng.</div>:
