@@ -50,7 +50,7 @@ export default function Header(){
 
   async function signout(){
     await supabaseBrowser.auth.signOut();
-    window.location.href="/cph/";
+    window.location.href=window.location.hostname.endsWith("github.io")?window.location.origin+"/cph/":window.location.origin+"/";
   }
 
   return <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
