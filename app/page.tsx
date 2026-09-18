@@ -1,6 +1,8 @@
+"use client";
 import Link from "next/link";
 import {ArrowRight,MapPin,ShieldCheck,Smartphone,Store,Zap} from "lucide-react";
-import Header from "../components/Header";import SearchBox from "../components/SearchBox";import CategoryCard from "../components/CategoryCard";import {getSupabase} from "../lib/supabase";
+import Header from "../components/Header";import SearchBox from "../components/SearchBox";import CategoryCard from "../components/CategoryCard";import {supabaseBrowser} from "../lib/supabase-browser";
+import {useEffect,useState} from "react";
 type Category={id:string;name:string;slug:string;icon:string|null};type Listing={id:string;title:string;price:number;images:string[]|null;condition:string};
 const demo:Listing[]=[
 {id:"demo1",title:"iPhone 15 Pro 256GB - máy đẹp, pin tốt",price:15900000,condition:"used",images:["https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=80"]},
@@ -8,7 +10,7 @@ const demo:Listing[]=[
 {id:"demo3",title:"PC Gaming i5 + RTX - chiến game mượt",price:12500000,condition:"used",images:["https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&w=900&q=80"]},
 {id:"demo4",title:"Laptop văn phòng 14 inch, RAM 16GB",price:8200000,condition:"used",images:["https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80"]}];
 const money=new Intl.NumberFormat("vi-VN");
-export default async function Home(){const sb=getSupabase();let categories:Category[]=[];let listings:Listing[]=[];if(sb){const[c,l]=await Promise.all([sb.from("categories").select("id,name,slug,icon").order("name"),sb.from("listings").select("id,title,price,images,condition").eq("status","published").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).order("created_at",{ascending:false}).limit(8)]);categories=(c.data||[]) as Category[];listings=(l.data||[]) as Listing[]}
+export default function Home(){const[categories,setCategories]=useState<Category[]>([]),[listings,setListings]=useState<Listing[]>([]);useEffect(()=>{let active=true;const load=async()=>{const[c,l]=await Promise.all([supabaseBrowser.from("categories").select("id,name,slug,icon").order("name"),supabaseBrowser.from("listings").select("id,title,price,images,condition").eq("status","published").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).order("created_at",{ascending:false}).limit(8)]);if(active){setCategories((c.data||[]) as Category[]);setListings((l.data||[]) as Listing[])}};load();const timer=window.setInterval(load,15000);return()=>{active=false;window.clearInterval(timer)}},[])
 const products=listings.length?listings:demo;
 return <main><Header/>
 <section className="relative overflow-hidden bg-slate-900"><div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,35,24,.94),rgba(4,35,24,.56),rgba(4,35,24,.18)),url('https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1800&q=85')] bg-cover bg-center"/><div className="relative container-page py-20 md:py-28"><div className="max-w-2xl text-white"><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold"><MapPin size={14}/>Mua bán tại Phú Thọ</div><h1 className="text-balance text-4xl font-black leading-tight md:text-6xl">Mua bán, dịch vụ và địa điểm tại Phú Thọ</h1><p className="mt-5 max-w-xl text-base leading-7 text-white/80 md:text-lg">Tập trung vào điện thoại, laptop, PC, linh kiện và các sản phẩm địa phương. Tìm người bán gần bạn, nhanh và dễ.</p><div className="mt-7"><SearchBox/></div></div></div></section>
