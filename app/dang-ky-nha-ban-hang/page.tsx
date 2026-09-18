@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 import Header from "../../components/Header";
 import AuthGuard from "../../components/AuthGuard";
 import { supabaseBrowser } from "../../lib/supabase-browser";
@@ -79,7 +78,7 @@ export default function SellerRegistrationPage() {
     load();
   }, []);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: { preventDefault: () => void }) {
     e.preventDefault();
     setError("");
     setNotice("");
