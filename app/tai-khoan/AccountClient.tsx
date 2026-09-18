@@ -45,7 +45,7 @@ export default function AccountClient(){
     const{error}=await supabaseBrowser.from("listings").delete().eq("id",id);
     if(error) alert(error.message); else await load(); setAction("");
   }
-  async function signout(){await supabaseBrowser.auth.signOut();window.location.href=window.location.origin+window.location.pathname.replace(/\\/tai-khoan\\/?$/,"/");}
+  async function signout(){await supabaseBrowser.auth.signOut();window.location.href=window.location.origin+window.location.pathname.replace(/\/tai-khoan\/?$/,"/");}
 
   return <AuthGuard>
     <div className="flex flex-wrap items-end justify-between gap-4">
