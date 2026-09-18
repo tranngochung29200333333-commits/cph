@@ -84,7 +84,7 @@ export default function Header(){
     </div>
     {pathname!=="/"&&<div className="border-t bg-white md:hidden"><div className="container-page h-11 flex items-center"><Link href="/" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-slate-600 active:text-brand-700" aria-label="Quay về trang chủ"><ArrowLeft size={17}/>Trang chủ</Link></div></div>}
     {cartCount>0&&<Link href="/gio-hang" aria-label={"Giỏ hàng, "+cartCount+" sản phẩm"} className="fixed bottom-24 left-4 z-40 grid h-14 w-14 place-items-center md:hidden rounded-full bg-brand-600 text-white shadow-lg"><ShoppingCart size={24}/><span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-red-500 px-1.5 py-1 text-center text-xs font-black text-white">{cartCount}</span></Link>}
-    <a href="https://zalo.me/0353109444" target="_blank" rel="noreferrer" aria-label="Liên hệ chủ web qua Zalo" title="Liên hệ chủ web qua Zalo" className="fixed bottom-40 left-4 z-40 grid h-11 w-11 place-items-center md:hidden rounded-full bg-[#0068ff] text-lg font-black text-white shadow-lg">Z</a>
+    
     <nav aria-label="Điều hướng trên điện thoại" className="mobile-bottom-nav md:hidden">
       {mobileItems.map(({href,label,icon:Icon})=><Link key={href} href={href} className="mobile-nav-item">{href==="/tin-nhan"?<MessageIcon unread={unread}/>:<Icon size={19}/>}<span>{label}</span></Link>)}
     </nav>
