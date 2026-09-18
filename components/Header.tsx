@@ -24,15 +24,18 @@ export default function Header(){
   const[unread,setUnread]=useState(false);
   const[ready,setReady]=useState(false);
   const[isAdmin,setIsAdmin]=useState(false);
+  const[isVerifiedSeller,setIsVerifiedSeller]=useState(false);
 
   useEffect(()=>{
     let active=true;
     const load=async()=>{
       const{data:{user:u}}=await supabaseBrowser.auth.getUser();
       if(active){setUser(u);setReady(true)}
-      if(!u){if(active){setUnread(false);setIsAdmin(false)}return}
+      if(!u){if(active){setUnread(false);setIsAdmin(false);setIsVerifiedSeller(false)}return}
       const{data:profile}=await supabaseBrowser.from("profiles").select("role").eq("id",u.id).maybeSingle();
       if(active)setIsAdmin(profile?.role==="admin");
+      const{data:seller}=await supabaseBrowser.from("seller_registrations").select("status").eq("user_id",u.id).maybeSingle();
+      if(active)setIsVerifiedSeller(seller?.status==="approved");
       const{count}=await supabaseBrowser.from("messages").select("id",{count:"exact",head:true}).eq("receiver_id",u.id).is("read_at",null);
       if(active)setUnread((count||0)>0);
     };
@@ -60,7 +63,7 @@ export default function Header(){
         <Link href="/tin-nhan" className="rounded-xl p-2.5 text-slate-600" title="Tin nhắn"><MessageIcon unread={unread}/></Link>
         {ready&&user ? (
           <>
-            {isAdmin&&<Link href="/admin" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Quản trị</Link>}<Link href="/dang-ky-nha-ban-hang" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Đăng ký nhà bán hàng</Link>
+            {isAdmin&&<Link href="/admin" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Quản trị</Link>}{!isVerifiedSeller&&<Link href="/dang-ky-nha-ban-hang" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Đăng ký nhà bán hàng</Link>}{isVerifiedSeller&&<Link href="/tai-khoan" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700" title="Nhà bán hàng đã xác minh">✓ Đã xác minh</Link>}
             <Link href="/tai-khoan" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"><UserRound size={17}/><span className="max-w-28 truncate">{user.user_metadata?.full_name||"Tài khoản"}</span></Link>
             <button onClick={signout} className="rounded-xl p-2.5 text-slate-500" title="Đăng xuất" aria-label="Đăng xuất"><LogOut size={18}/></button>
           </>
