@@ -1,6 +1,5 @@
-import {supabaseBrowser} from "../../lib/supabase-browser";
 "use client";
-import {useEffect,useState} from "react";import Link from "next/link";import Header from "../../components/Header";import AuthGuard from "../../components/AuthGuard";import {Heart} from "lucide-react";
+import {useEffect,useState} from "react";import Link from "next/link";import Header from "../../components/Header";import AuthGuard from "../../components/AuthGuard";import {Heart} from "lucide-react";import {supabaseBrowser} from "../../lib/supabase-browser";
 const money=new Intl.NumberFormat("vi-VN");
 export default function FavoritesPage(){const[items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(true);
  async function load(){const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){setLoading(false);return}const{data}=await supabaseBrowser.from("favorites").select("listing_id,listings(id,title,price,images,condition,status,locations(name))").eq("user_id",user.id).order("created_at",{ascending:false});setItems((data||[]).map((x:any)=>x.listings).filter(Boolean));setLoading(false)}
