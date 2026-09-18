@@ -1,3 +1,3 @@
 import type {Metadata} from "next";import "./globals.css";
-export const metadata:Metadata={title:"Phú Thọ Market | Mua bán tại Phú Thọ",description:"Chợ online địa phương tập trung điện thoại, máy tính và các sản phẩm tại Phú Thọ."};
+export const metadata:Metadata={metadataBase:new URL("https://tranngochung29200333333-commits.github.io/cph/"),title:{default:"Phú Thọ Market | Mua bán tại Phú Thọ",template:"%s | Phú Thọ Market"},description:"Chợ online địa phương tại Phú Thọ: mua bán điện thoại, laptop, PC, linh kiện và sản phẩm địa phương.",applicationName:"Phú Thọ Market",robots:{index:true,follow:true},openGraph:{title:"Phú Thọ Market",description:"Mua bán và kết nối người dùng tại Phú Thọ.",type:"website",locale:"vi_VN"},twitter:{card:"summary_large_image"}};
 export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="vi"><body>{children}</body></html>}
