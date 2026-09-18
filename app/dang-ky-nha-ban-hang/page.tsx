@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Header from "../../components/Header";
 import AuthGuard from "../../components/AuthGuard";
 import { supabaseBrowser } from "../../lib/supabase-browser";
