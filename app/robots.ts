@@ -1,0 +1,2 @@
+import type {MetadataRoute} from "next";
+export default function robots():MetadataRoute.Robots{return{rules:{userAgent:"*",allow:"/"},sitemap:"https://tranngochung29200333333-commits.github.io/cph/sitemap.xml"}}
