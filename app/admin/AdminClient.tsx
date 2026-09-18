@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "../../lib/supabase-browser";
 
-type Tab = "listings" | "reports" | "users";
+type Tab = "listings" | "reports" | "users" | "sellers";
 type Filter = "pending" | "published" | "rejected" | "sold" | "all";
 
 const statusLabel: Record<string, string> = {
@@ -18,6 +18,7 @@ export default function AdminClient() {
   const [rows, setRows] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>("listings");
   const [filter, setFilter] = useState<Filter>("pending");
@@ -49,7 +50,7 @@ export default function AdminClient() {
 
     setAllowed(true);
 
-    const [listingResult, reportResult, userResult] = await Promise.all([
+    const [listingResult, reportResult, userResult, sellerResult] = await Promise.all([
       supabaseBrowser
         .from("listings")
         .select(
@@ -67,9 +68,14 @@ export default function AdminClient() {
         .select("id,full_name,phone,avatar_url,role,created_at")
         .order("created_at", { ascending: false })
         .limit(500),
+      supabaseBrowser
+        .from("seller_registrations")
+        .select("id,user_id,store_name,category_id,location_id,phone,zalo_phone,status,rejection_reason,created_at,reviewed_at")
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
 
-    if (listingResult.error || reportResult.error || userResult.error) {
+    if (listingResult.error || reportResult.error || userResult.error || sellerResult.error) {
       setError(
         listingResult.error?.message ||
           reportResult.error?.message ||
@@ -127,6 +133,16 @@ export default function AdminClient() {
       }))
     );
 
+    const sellerRows = sellerResult.data || [];
+    const sellerCategoryIds = [...new Set(sellerRows.map((x) => x.category_id).filter(Boolean))];
+    const sellerLocationIds = [...new Set(sellerRows.map((x) => x.location_id).filter(Boolean))];
+    const [sc, sl] = await Promise.all([
+      sellerCategoryIds.length ? supabaseBrowser.from("categories").select("id,name").in("id", sellerCategoryIds) : Promise.resolve({data: [] as any[]}),
+      sellerLocationIds.length ? supabaseBrowser.from("locations").select("id,name").in("id", sellerLocationIds) : Promise.resolve({data: [] as any[]}),
+    ]);
+    const scm = new Map((sc.data || []).map((x) => [x.id, x.name]));
+    const slm = new Map((sl.data || []).map((x) => [x.id, x.name]));
+    setSellers(sellerRows.map((x) => ({...x, category_name: scm.get(x.category_id) || "Khác", location_name: slm.get(x.location_id) || "Phú Thọ"})));
     setUsers(userResult.data || []);
     setLoading(false);
   }
@@ -154,6 +170,14 @@ export default function AdminClient() {
       return;
     }
 
+    await load();
+  }
+
+  async function sellerStatus(id: string, status: "approved" | "rejected") {
+    let rejectionReason: string | null = null;
+    if (status === "rejected") rejectionReason = window.prompt("Lý do từ chối đăng ký nhà bán hàng:") || "Thông tin đăng ký chưa đáp ứng yêu cầu.";
+    const { error: updateError } = await supabaseBrowser.from("seller_registrations").update({ status, rejection_reason: rejectionReason, reviewed_at: new Date().toISOString() }).eq("id", id);
+    if (updateError) { window.alert(updateError.message); return; }
     await load();
   }
 
@@ -252,6 +276,9 @@ export default function AdminClient() {
           </button>
           <button type="button" onClick={() => setTab("users")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "users" ? "bg-white shadow" : "")}>
             Người dùng ({users.length})
+          </button>
+          <button type="button" onClick={() => setTab("sellers")} className={"rounded-lg px-4 py-2 text-sm font-bold " + (tab === "sellers" ? "bg-white shadow" : "")}>
+            Nhà bán hàng ({sellers.filter((x) => x.status === "pending").length})
           </button>
         </div>
       </div>
@@ -361,6 +388,33 @@ export default function AdminClient() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      
+      {tab === "sellers" && (
+        <section className="card mt-7 overflow-hidden">
+          <div className="border-b bg-slate-50 p-4"><h2 className="font-black">Đăng ký nhà bán hàng</h2><p className="mt-1 text-sm text-slate-500">Kiểm tra và duyệt hồ sơ trước khi người bán được đăng sản phẩm.</p></div>
+          <div className="divide-y">
+            {sellers.map((seller) => (
+              <div key={seller.id} className="p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-black">{seller.store_name}</h3>
+                    <p className="mt-1 text-sm text-slate-600">Danh mục: {seller.category_name} · Khu vực: {seller.location_name}</p>
+                    <p className="mt-1 text-sm text-slate-500">SĐT: {seller.phone}{seller.zalo_phone ? " · Zalo: " + seller.zalo_phone : ""}</p>
+                    <p className="mt-1 text-xs text-slate-400">{new Date(seller.created_at).toLocaleString("vi-VN")}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={"rounded-full px-3 py-1 text-xs font-bold " + (seller.status === "approved" ? "bg-brand-50 text-brand-700" : seller.status === "rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700")}>{seller.status === "approved" ? "Đã duyệt" : seller.status === "rejected" ? "Từ chối" : "Chờ duyệt"}</span>
+                    {seller.status === "pending" && <><button type="button" onClick={() => sellerStatus(seller.id, "approved")} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white">Duyệt nhà bán hàng</button><button type="button" onClick={() => sellerStatus(seller.id, "rejected")} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Từ chối</button></>}
+                  </div>
+                </div>
+                {seller.rejection_reason && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">Lý do: {seller.rejection_reason}</p>}
+              </div>
+            ))}
+            {!sellers.length && <div className="p-10 text-center text-slate-500">Chưa có đăng ký nhà bán hàng.</div>}
           </div>
         </section>
       )}
