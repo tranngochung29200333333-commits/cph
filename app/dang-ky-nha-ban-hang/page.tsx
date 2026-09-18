@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "../../components/Header";
 import AuthGuard from "../../components/AuthGuard";
 import { supabaseBrowser } from "../../lib/supabase-browser";
@@ -15,6 +16,7 @@ type FormState = {
 };
 
 export default function SellerRegistrationPage() {
+  const router = useRouter();
   const [form, setForm] = useState<FormState>({
     store_name: "",
     category_id: "",
@@ -127,8 +129,7 @@ export default function SellerRegistrationPage() {
       const { error: saveError } = await query;
       if (saveError) throw saveError;
 
-      setNotice("Đã gửi đăng ký. Vui lòng chờ admin duyệt nhà bán hàng.");
-      await load();
+      router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể gửi đăng ký.");
     } finally {
@@ -172,6 +173,14 @@ export default function SellerRegistrationPage() {
                 >
                   Đăng sản phẩm
                 </Link>
+              </div>
+            ) : current?.status === "pending" ? (
+              <div className="card mt-7 p-6 text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-50 text-2xl">⏳</div>
+                <h2 className="mt-4 text-xl font-black">Hồ sơ nhà bán hàng của bạn đã được gửi.</h2>
+                <p className="mt-2 text-slate-600">Đợi phê duyệt</p>
+                <p className="mt-2 text-sm text-slate-500">Trong thời gian chờ duyệt, bạn chưa thể đăng sản phẩm.</p>
+                <Link href="/" className="mt-5 inline-block rounded-xl bg-brand-600 px-4 py-2.5 font-extrabold text-white">Về trang chủ</Link>
               </div>
             ) : (
               <form onSubmit={submit} className="card mt-7 p-5 md:p-6">
