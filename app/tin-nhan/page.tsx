@@ -29,6 +29,9 @@ export default function MessagesPage() {
   const getListingId = () =>
     new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("listing");
 
+  const getPartnerId = () =>
+    new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("with");
+
   async function loadInbox(u: any) {
     const {data: rows} = await supabaseBrowser
       .from("messages")
@@ -191,7 +194,7 @@ export default function MessagesPage() {
     if (error) alert(error.message);
     else {
       setText("");
-      await loadConversation(user, listing.id);
+      await loadConversation(user, listing.id, receiverId);
     }
 
     setSending(false);
