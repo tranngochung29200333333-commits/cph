@@ -25,22 +25,10 @@ type Seller = {
   categorySlug: string;
 };
 
-type Product = {
-  id: string;
-  title: string;
-  price: number | null;
-  price_type: string;
-  images: string[] | null;
-  condition: string;
-  created_at: string;
-  categorySlug: string;
-};
-
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   useEffect(() => {
@@ -60,26 +48,6 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(50);
       const registrations = sellerRegistrations || [];
-      const categoryMapAll = new Map(allCategories.map((item) => [item.id, item]));
-      const { data: publicProductData } = await supabaseBrowser
-        .from("listings")
-        .select("id,title,price,price_type,images,condition,created_at,category_id")
-        .eq("status", "published")
-        .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(12);
-
-      const publicProducts: Product[] = (publicProductData || []).map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        price_type: item.price_type,
-        images: item.images || null,
-        condition: item.condition,
-        created_at: item.created_at,
-        categorySlug: categoryMapAll.get(item.category_id)?.slug || "",
-      }));
-
       const sellerIds = registrations.map((item: any) => item.user_id).filter(Boolean);
       const { data: listingData } = sellerIds.length
         ? await supabaseBrowser
@@ -135,7 +103,6 @@ export default function Home() {
       if (active) {
         setCategories(allCategories);
         setSellers([...grouped.values()].slice(0, 8));
-        setProducts(publicProducts);
       }
     };
 
@@ -198,62 +165,6 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="container-page pb-10">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
-              Sản phẩm mới
-            </p>
-            <h2 className="mt-1 text-2xl font-black">
-              {selectedCategory
-                ? `Sản phẩm · ${categories.find((c) => c.slug === selectedCategory)?.name || ""}`
-                : "Sản phẩm đang bán"}
-            </h2>
-          </div>
-          <Link href="/tim-kiem" className="text-sm font-bold text-brand-700">
-            Xem tất cả →
-          </Link>
-        </div>
-        {!products.filter((product) => !selectedCategory || product.categorySlug === selectedCategory).length ? (
-          <div className="card p-8 text-center text-slate-500">
-            Chưa có sản phẩm đang được đăng bán.
-          </div>
-        ) : (
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-            {products
-              .filter((product) => !selectedCategory || product.categorySlug === selectedCategory)
-              .map((product) => (
-                <Link
-                  key={product.id}
-                  href={"/tin?id=" + encodeURIComponent(product.id)}
-                  className="overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 hover:shadow-soft"
-                >
-                  <div className="aspect-square overflow-hidden bg-slate-100">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="grid h-full place-items-center text-xs text-slate-400">Không có ảnh</div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="line-clamp-2 text-sm font-bold">{product.title}</h3>
-                    <p className="mt-2 font-black text-brand-700">
-                      {product.price_type === "contact"
-                        ? "Liên hệ"
-                        : product.price_type === "negotiable"
-                          ? "Thỏa thuận"
-                          : `${new Intl.NumberFormat("vi-VN").format(product.price || 0)} đ`}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {product.condition === "new" ? "Mới" : product.condition === "like_new" ? "Như mới" : "Đã sử dụng"}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-          </div>
-        )}
       </section>
 
       <section className="container-page pb-12 md:pb-16">
