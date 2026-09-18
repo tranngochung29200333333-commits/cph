@@ -147,12 +147,12 @@ export default function SellerRegistrationPage() {
               ← Tài khoản
             </Link>
 
-            <div className="mt-4">
+            <div className="card mt-4 p-5 md:p-6">
               <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
                 Nhà bán hàng
               </p>
               <h1 className="mt-1 text-3xl font-black">Đăng ký nhà bán hàng</h1>
-              <p className="mt-2 text-slate-500">
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 md:text-base">
                 Thông tin này sẽ được dùng chung cho các sản phẩm bạn đăng bán.
               </p>
             </div>
