@@ -134,7 +134,7 @@ export default function AdminClient() {
       }))
     );
 
-    const sellerRows = sellerResult.data || [];
+    const sellerRows = sellerRegistrationResult.data || [];
     const sellerCategoryIds = [...new Set(sellerRows.map((x) => x.category_id).filter(Boolean))];
     const sellerLocationIds = [...new Set(sellerRows.map((x) => x.location_id).filter(Boolean))];
     const [sc, sl] = await Promise.all([
