@@ -1,3 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /tai-khoan/
+Disallow: /tin-nhan/
+Disallow: /dang-tin/
+Disallow: /sua-tin/
+Disallow: /admin/
+Disallow: /dang-nhap/
+Disallow: /dang-ky/
 Sitemap: https://tranngochung29200333333-commits.github.io/cph/sitemap.xml
