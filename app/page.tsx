@@ -222,6 +222,7 @@ export default function Home() {
                           <h3 className="truncate text-sm font-black">
                             {seller.full_name || "Nhà bán hàng"}
                           </h3>
+                          <p className="mt-1 inline-flex items-center gap-1 text-xs font-extrabold text-brand-700">✓ Đã xác minh</p>
                           <p className="mt-1 text-xs font-bold text-brand-700">
                             {seller.listingCount} sản phẩm đang bán
                           </p>
