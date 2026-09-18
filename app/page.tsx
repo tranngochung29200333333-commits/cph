@@ -22,12 +22,14 @@ type Seller = {
   listingCount: number;
   latestTitle: string;
   categoryName: string;
+  categorySlug: string;
 };
 
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   useEffect(() => {
     let active = true;
@@ -93,6 +95,7 @@ export default function Home() {
           avatar_url: profile?.avatar_url || null,
           listingCount: 1,
           categoryName: categoryMap.get(registrationMap.get(item.seller_id)?.category_id) || "Sản phẩm",
+          categorySlug: categoryMap.get(registrationMap.get(item.seller_id)?.category_id)?.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "",
           latestTitle: item.title,
         });
       }
@@ -158,7 +161,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
             {categories.filter((category) => ["quan-an", "dien-thoai", "viec-lam", "dich-vu"].includes(category.slug)).slice(0, 4).map((category) => (
-              <CategoryCard key={category.id} category={category} />
+              <CategoryCard key={category.id} category={category} onSelect={() => setSelectedCategory(selectedCategory === category.slug ? "" : category.slug)} selected={selectedCategory === category.slug} />
             ))}
           </div>
         </div>
@@ -173,7 +176,7 @@ export default function Home() {
                   Nhà bán hàng
                 </p>
                 <h2 className="mt-1 text-2xl font-black">
-                  Nhà bán hàng
+                  {selectedCategory ? `Nhà bán hàng · ${categories.find((c) => c.slug === selectedCategory)?.name || ""}` : "Nhà bán hàng"}
                 </h2>
               </div>
               <Link href="/danh-muc" className="text-sm font-bold text-brand-700">
@@ -181,13 +184,13 @@ export default function Home() {
               </Link>
             </div>
 
-            {!sellers.length ? (
+            {!sellers.filter((seller) => !selectedCategory || seller.categorySlug === selectedCategory).length ? (
               <div className="card p-8 text-center text-slate-500">
                 Chưa có nhà bán hàng đang hoạt động.
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {sellers.map((seller) => (
+                {sellers.filter((seller) => !selectedCategory || seller.categorySlug === selectedCategory).map((seller) => (
                   <Link
                     key={seller.id}
                     href={"/nguoi-ban?id=" + encodeURIComponent(seller.id)}
