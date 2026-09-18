@@ -238,6 +238,36 @@ export default function AdminClient() {
     await load();
   }
 
+  async function changePassword(user: any) {
+    const label = user.store_name || user.full_name || user.email || "tài khoản này";
+    const password = window.prompt(
+      "Nhập mật khẩu mới cho " + label + ". Mật khẩu tối thiểu 8 ký tự:"
+    );
+    if (password === null) return;
+    if (password.length < 8) {
+      window.alert("Mật khẩu mới phải có ít nhất 8 ký tự.");
+      return;
+    }
+
+    const confirmPassword = window.prompt("Nhập lại mật khẩu mới để xác nhận:");
+    if (confirmPassword === null) return;
+    if (password !== confirmPassword) {
+      window.alert("Hai lần nhập mật khẩu không giống nhau.");
+      return;
+    }
+
+    const { data, error: invokeError } = await supabaseBrowser.functions.invoke("admin-users", {
+      body: { action: "update_password", user_id: user.id || user.user_id, password },
+    });
+
+    if (invokeError || data?.error) {
+      window.alert(invokeError?.message || data?.error || "Không thể đổi mật khẩu.");
+      return;
+    }
+
+    window.alert("Đã đổi mật khẩu. Hãy gửi mật khẩu mới cho người dùng qua kênh riêng tư.");
+  }
+
   async function sellerStatus(id: string, status: "approved" | "rejected") {
     let rejectionReason: string | null = null;
     if (status === "rejected") {
@@ -439,6 +469,7 @@ export default function AdminClient() {
 
                   <div className="flex flex-wrap gap-2 lg:max-w-[280px] lg:justify-end">
                     <button type="button" onClick={() => setEditingSellerId(editingSellerId === seller.user_id ? null : seller.user_id)} className="rounded-lg border px-3 py-2 text-xs font-bold">Sửa profile</button>
+                    <button type="button" onClick={() => changePassword(seller)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Đổi mật khẩu</button>
                     {seller.status === "pending" && (
                       <>
                         <button type="button" onClick={() => sellerStatus(seller.id, "approved")} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white">Duyệt</button>
@@ -482,6 +513,7 @@ export default function AdminClient() {
           <div className="border-b bg-slate-50 p-4">
             <h2 className="font-black">Người dùng</h2>
             <p className="mt-1 text-sm text-slate-500">Chỉ hiển thị khách đăng ký tài khoản. Khi đăng ký hồ sơ nhà bán hàng, tài khoản sẽ tự động chuyển sang mục Nhà bán hàng.</p>
+            <p className="mt-2 text-xs text-slate-400">Admin có thể đặt lại mật khẩu khi khách quên. Mật khẩu cũ không được hiển thị.</p>
           </div>
 
           <div className="divide-y">
@@ -502,6 +534,7 @@ export default function AdminClient() {
 
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => setEditingUserId(editingUserId === user.id ? null : user.id)} className="rounded-lg border px-3 py-2 text-xs font-bold">Sửa profile</button>
+                    <button type="button" onClick={() => changePassword(user)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Đổi mật khẩu</button>
                     <button type="button" onClick={() => deleteAccount(user)} className="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white">Xóa tài khoản</button>
                   </div>
                 </div>
