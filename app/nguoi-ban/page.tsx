@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "../../components/Header";
-import { MapPin, Phone, UserRound } from "lucide-react";
+import { MapPin, Phone, UserRound, MessageCircle } from "lucide-react";
 import { supabaseBrowser } from "../../lib/supabase-browser";
 
 const money = new Intl.NumberFormat("vi-VN");
@@ -40,10 +40,13 @@ export default function SellerPage() {
   const [categoryName, setCategoryName] = useState("");
   const [locationName, setLocationName] = useState("Phú Thọ");
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const id = new URLSearchParams(window.location.search).get("id");
+      const { data: authData } = await supabaseBrowser.auth.getUser();
+      setCurrentUserId(authData.user?.id || null);
 
       if (!id) {
         setLoading(false);
@@ -218,6 +221,16 @@ export default function SellerPage() {
                     <Phone size={16} />
                     {seller.phone}
                   </a>
+                )}
+
+                {currentUserId && currentUserId !== profile.id && (
+                  <Link
+                    href={"/tin-nhan?with=" + encodeURIComponent(profile.id)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white"
+                  >
+                    <MessageCircle size={16} />
+                    Nhắn tin
+                  </Link>
                 )}
 
                 {seller.zalo_phone && (
