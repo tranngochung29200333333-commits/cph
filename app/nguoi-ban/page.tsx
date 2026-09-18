@@ -187,9 +187,10 @@ export default function SellerPage() {
                 Hồ sơ nhà bán hàng
               </p>
 
-              <h1 className="mt-1 text-3xl font-black">
-                {seller.store_name}
-              </h1>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-black">{seller.store_name}</h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-sm font-extrabold text-brand-700">✓ Đã xác minh</span>
+              </div>
 
               <p className="mt-1 text-sm text-slate-500">
                 Người đại diện: {profile.full_name || "Nhà bán hàng"} · Tham
