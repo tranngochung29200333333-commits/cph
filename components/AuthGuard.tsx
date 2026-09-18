@@ -1,0 +1,2 @@
+"use client";import {useEffect,useState} from "react";import {supabaseBrowser} from "../lib/supabase-browser";import {useRouter} from "next/navigation";
+export default function AuthGuard({children}:{children:React.ReactNode}){const[checking,setChecking]=useState(true);const router=useRouter();useEffect(()=>{supabaseBrowser.auth.getUser().then(({data})=>{if(!data.user)router.replace("/dang-nhap");else setChecking(false)})},[router]);if(checking)return <div className="grid min-h-[50vh] place-items-center text-slate-500">Đang kiểm tra tài khoản...</div>;return <>{children}</>}
