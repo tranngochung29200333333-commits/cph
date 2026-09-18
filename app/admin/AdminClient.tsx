@@ -80,6 +80,7 @@ export default function AdminClient() {
         listingResult.error?.message ||
           reportResult.error?.message ||
           userResult.error?.message ||
+          sellerRegistrationResult.error?.message ||
           "Không tải được dữ liệu quản trị."
       );
       setLoading(false);
@@ -110,7 +111,7 @@ export default function AdminClient() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-    const sellerMap = new Map((sellerRegistrationResult.data || []).map((x) => [x.id, x]));
+    const sellerMap = new Map((sellerResult.data || []).map((x) => [x.id, x]));
     const categoryMap = new Map((categoryResult.data || []).map((x) => [x.id, x]));
     const locationMap = new Map((locationResult.data || []).map((x) => [x.id, x]));
     const reportListingMap = new Map(
