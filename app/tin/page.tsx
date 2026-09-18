@@ -6,7 +6,7 @@ const priceType:Record<string,string>={fixed:"Giá cố định",negotiable:"Có
 export default function ListingDetailPage(){
  const[x,setX]=useState<any>(null),[loading,setLoading]=useState(true),[fav,setFav]=useState(false),[user,setUser]=useState<any>(null),[saving,setSaving]=useState(false),[active,setActive]=useState(0),[views,setViews]=useState(0);
  async function init(){const id=new URLSearchParams(window.location.search).get("id");const{data:{user:u}}=await supabaseBrowser.auth.getUser();setUser(u);if(!id){setLoading(false);return}
-  const{data}=await supabaseBrowser.from("listings").select("id,title,description,price,price_type,images,condition,phone,created_at,views,expires_at,seller_id,specs,locations(name),categories(name),profiles(full_name)").eq("id",id).eq("status","published").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).maybeSingle();setX(data);setViews(data?.views||0);setLoading(false);
+  const{data}=await supabaseBrowser.from("listings").select("id,title,description,price,price_type,images,condition,phone,created_at,views,expires_at,seller_id,specs,locations(name),categories(name),profiles(full_name)").eq("id",id).or("status.eq.published,status.eq.pending").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).maybeSingle();setX(data);setViews(data?.views||0);setLoading(false);
   if(u&&data){const{data:f}=await supabaseBrowser.from("favorites").select("listing_id").eq("user_id",u.id).eq("listing_id",id).maybeSingle();setFav(!!f)}
   if(data){const{data:result}=await supabaseBrowser.functions.invoke("increment-listing-view",{body:{listing_id:data.id}});if(typeof result?.views==="number")setViews(result.views)}
  }
