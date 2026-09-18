@@ -24,7 +24,7 @@ export default function MessagesPage() {
   const [inbox, setInbox] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [realtime, setRealtime] = useState(false);
+  const [realtime, setRealtime] = useState(false);\n  const [error, setError] = useState("");
 
   const getListingId = () =>
     new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("listing");
@@ -228,7 +228,7 @@ export default function MessagesPage() {
                 {inbox.map((x) => (
                   <Link
                     key={x.id}
-                    href={"/tin-nhan?listing=" + x.listing_id + "&with=" + x.partner_id}
+                    href={"/tin-nhan?listing=" + encodeURIComponent(x.listing_id) + "&with=" + encodeURIComponent(x.partner_id)}
                     className="card flex gap-4 p-4 hover:shadow-soft"
                   >
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
