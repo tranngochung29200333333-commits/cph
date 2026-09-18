@@ -357,3 +357,5 @@ export default function Home() {
     </main>
   );
 }
+
+// Production refresh: 2026-09-18 — keep GitHub Pages deployment in sync with the current marketplace UI.
