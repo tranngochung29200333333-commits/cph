@@ -45,7 +45,7 @@ export default function Header(){
 
   async function signout(){
     await supabaseBrowser.auth.signOut();
-    window.location.href="/";
+    window.location.href="/cph/";
   }
 
   return <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
@@ -64,7 +64,7 @@ export default function Header(){
           </>
         ) : ready ? (
           <Link href="/dang-nhap" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold"><LogIn size={17}/>Đăng nhập</Link>
-        ) : <span className="h-9 w-24"/>}
+        ) : <span className="h-9 w-24"/>
       </div>
       <Link href="/dang-tin" className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-3 sm:h-auto sm:px-4 sm:py-2.5 text-sm font-bold text-white hover:bg-brand-700" aria-label="Đăng tin"><Plus size={18}/><span className="hidden sm:inline">Đăng tin</span></Link>
     </div>
