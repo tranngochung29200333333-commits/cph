@@ -247,6 +247,8 @@ export default function MessagesPage() {
 
   useEffect(() => {
     let channel: any;
+    let poll: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
 
     (async () => {
       await load();
@@ -255,36 +257,74 @@ export default function MessagesPage() {
         data: { user: currentUser },
       } = await supabaseBrowser.auth.getUser();
 
-      if (!currentUser) return;
+      if (!currentUser || cancelled) return;
+
+      const { data: sessionData } = await supabaseBrowser.auth.getSession();
+      if (sessionData.session?.access_token) {
+        await supabaseBrowser.realtime.setAuth(sessionData.session.access_token);
+      }
 
       const listingId = getListingId();
+      const channelName = listingId
+        ? "messages-listing-" + listingId
+        : "messages-inbox-" + currentUser.id;
 
       channel = supabaseBrowser
-        .channel(
-          listingId
-            ? "messages-listing-" + listingId
-            : "messages-inbox-" + currentUser.id
-        )
+        .channel(channelName)
         .on(
           "postgres_changes",
           {
-            event: "*",
+            event: "INSERT",
             schema: "public",
             table: "messages",
             filter: listingId
               ? "listing_id=eq." + listingId
               : "receiver_id=eq." + currentUser.id,
           },
-          async () => {
-            await load();
+          async (payload) => {
+            if (cancelled) return;
+            const incoming = payload.new as Message;
+            if (listingId) {
+              const partnerId = getPartnerId();
+              const belongsToConversation =
+                incoming.sender_id === currentUser.id ||
+                incoming.receiver_id === currentUser.id;
+              const matchesPartner =
+                !partnerId ||
+                incoming.sender_id === partnerId ||
+                incoming.receiver_id === partnerId;
+
+              if (belongsToConversation && matchesPartner) {
+                await loadConversation(currentUser, listingId, partnerId);
+              }
+            } else {
+              await loadInbox(currentUser);
+            }
           }
         )
-        .subscribe((status) => {
-          setRealtime(status === "SUBSCRIBED");
+        .subscribe((status, error) => {
+          if (cancelled) return;
+          const connected = status === "SUBSCRIBED";
+          setRealtime(connected);
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.error("Realtime messages error:", status, error);
+          }
         });
+
+      // Fallback: keep the chat live even if a browser/WebSocket temporarily
+      // loses the Realtime connection.
+      if (listingId) {
+        poll = setInterval(async () => {
+          if (!cancelled) {
+            await loadConversation(currentUser, listingId, getPartnerId());
+          }
+        }, 5000);
+      }
     })();
 
     return () => {
+      cancelled = true;
+      if (poll) clearInterval(poll);
       if (channel) supabaseBrowser.removeChannel(channel);
     };
   }, [pathname]);
@@ -294,14 +334,21 @@ export default function MessagesPage() {
     if (!body || !user || !listing || sending) return;
 
     const partnerId = getPartnerId();
+    const inferredPartnerId =
+      messages.find((m) => m.sender_id !== user.id)?.sender_id ||
+      messages.find((m) => m.receiver_id !== user.id)?.receiver_id ||
+      null;
     const receiverId =
-      partnerId ||
-      (user.id === listing.seller_id
-        ? messages.find((m) => m.sender_id !== user.id)?.sender_id
-        : listing.seller_id);
+      partnerId && partnerId !== user.id
+        ? partnerId
+        : user.id === listing.seller_id
+          ? inferredPartnerId
+          : listing.seller_id;
 
     if (!receiverId || receiverId === user.id) {
-      window.alert("Chưa xác định được người nhận tin nhắn.");
+      window.alert(
+        "Chưa xác định được người nhận. Hãy mở cuộc trò chuyện từ tin nhắn của người mua."
+      );
       return;
     }
 
