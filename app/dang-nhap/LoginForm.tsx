@@ -42,6 +42,5 @@ export default function LoginForm(){
    <div className="text-right"><Link href="/dat-lai-mat-khau" className="text-sm font-bold text-brand-700">Quên mật khẩu?</Link></div>
    {error&&<p className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-600">{error}</p>}
    <button disabled={loading} className="w-full rounded-xl bg-brand-600 py-3 font-extrabold text-white disabled:opacity-60">{loading?"Đang đăng nhập...":"Đăng nhập"}</button>
-   <p className="pt-2 text-center text-sm text-slate-500">Chưa có tài khoản? <Link href="/dang-ky" className="font-bold text-brand-700">Đăng ký ngay</Link></p>
  </form>
 }
