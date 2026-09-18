@@ -5,7 +5,7 @@ const specLabels:Record<string,string>={brand:"Hãng",model:"Model",cpu:"CPU",ra
 export default function ListingDetailPage(){
  const[x,setX]=useState<any>(null),[loading,setLoading]=useState(true),[fav,setFav]=useState(false),[user,setUser]=useState<any>(null),[saving,setSaving]=useState(false),[active,setActive]=useState(0);
  async function init(){const id=new URLSearchParams(window.location.search).get("id");const{data:{user:u}}=await supabaseBrowser.auth.getUser();setUser(u);if(!id){setLoading(false);return}
-  const{data}=await supabaseBrowser.from("listings").select("id,title,description,price,images,condition,phone,created_at,views,expires_at,seller_id,specs,locations(name),categories(name),profiles(full_name)").eq("id",id).eq("status","published").maybeSingle();setX(data);setLoading(false);
+  const{data}=await supabaseBrowser.from("listings").select("id,title,description,price,images,condition,phone,created_at,views,expires_at,seller_id,specs,locations(name),categories(name),profiles(full_name)").eq("id",id).eq("status","published").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).maybeSingle();setX(data);setLoading(false);
   if(u&&data){const{data:f}=await supabaseBrowser.from("favorites").select("listing_id").eq("user_id",u.id).eq("listing_id",id).maybeSingle();setFav(!!f)}
   if(data) await supabaseBrowser.rpc("increment_listing_views",{p_listing_id:data.id});
  }
