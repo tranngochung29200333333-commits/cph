@@ -1,15 +1,294 @@
 "use client";
-import {useEffect,useState} from "react";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "../../components/Header";
-import {MapPin,Phone,UserRound} from "lucide-react";
-import {supabaseBrowser} from "../../lib/supabase-browser";
-const money=new Intl.NumberFormat("vi-VN");
+import { MapPin, Phone, UserRound } from "lucide-react";
+import { supabaseBrowser } from "../../lib/supabase-browser";
 
-export default function SellerPage(){
- const[profile,setProfile]=useState<any>(null),[seller,setSeller]=useState<any>(null),[items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(true);
- useEffect(()=>{const load=async()=>{const id=new URLSearchParams(window.location.search).get("id");if(!id){setLoading(false);return}const[{data:p},{data:s}]=await Promise.all([supabaseBrowser.from("profiles").select("id,full_name,avatar_url,created_at").eq("id",id).maybeSingle(),supabaseBrowser.from("seller_registrations").select("store_name,phone,zalo_phone,category_id,location_id,status").eq("user_id",id).eq("status","approved").maybeSingle()]);setProfile(p);setSeller(s);if(s){const{data:l,error}=await supabaseBrowser.from("listings").select("id,title,price,price_type,images,condition,created_at,expires_at").eq("seller_id",id).eq("status","published").or("expires_at.is.null,expires_at.gt."+new Date().toISOString()).order("created_at",{ascending:false}).limit(60);if(!error){let categoryName="";let locationName="Phú Thọ";if(s.category_id){const{data:c}=await supabaseBrowser.from("categories").select("name").eq("id",s.category_id).maybeSingle();categoryName=c?.name||""}if(s.location_id){const{data:l}=await supabaseBrowser.from("locations").select("name").eq("id",s.location_id).maybeSingle();locationName=l?.name||locationName}setItems((l||[]).map((x:any)=>({...x,category_name:categoryName,location_name:locationName})))}}setLoading(false)};load()},[]);
- if(loading)return <main><Header/><section className="container-page py-12 text-center text-slate-500">Đang tải hồ sơ...</section></main>;
- if(!profile||!seller)return <main><Header/><section className="container-page py-12 text-center"><h1 className="text-2xl font-black">Không tìm thấy nhà bán hàng</h1><p className="mt-2 text-slate-500">Nhà bán hàng chưa được duyệt hoặc hồ sơ không còn hoạt động.</p><Link href="/danh-muc" className="mt-4 inline-block font-bold text-brand-700">← Về danh mục</Link></section></main>;
- return <main><Header/><section className="container-page py-8"><Link href="/danh-muc" className="text-sm font-bold text-brand-700">← Quay lại danh mục</Link><div className="card mt-5 p-6 md:p-8"><div className="flex flex-col gap-5 sm:flex-row sm:items-center">{profile.avatar_url?<img src={profile.avatar_url} alt="" className="h-24 w-24 shrink-0 rounded-full object-cover"/>:<div className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600"><UserRound size={38}/></div>}<div className="min-w-0"><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Hồ sơ nhà bán hàng</p><h1 className="mt-1 text-3xl font-black">{seller.store_name}</h1><p className="mt-1 text-sm text-slate-500">Người đại diện: {profile.full_name||"Nhà bán hàng"} · Tham gia từ {new Date(profile.created_at).toLocaleDateString("vi-VN")}</p><div className="mt-3 flex flex-wrap gap-2 text-sm font-bold"><span className="rounded-full bg-slate-100 px-3 py-1">Danh mục: {items[0]?.category_name||"Sản phẩm"}</span><span className="rounded-full bg-slate-100 px-3 py-1"><MapPin size={13} className="mr-1 inline"/>{items[0]?.location_name||"Phú Thọ"}</span></div>{seller.phone&&<a href={"tel:"+seller.phone} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white"><Phone size={16}/>{seller.phone}</a>}{seller.zalo_phone&&<a href={"https://zalo.me/"+seller.zalo_phone.replace(/\D/g,"")} target="_blank" rel="noreferrer" className="ml-2 mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0068ff] px-4 py-2.5 text-sm font-extrabold text-white">💬 Liên hệ Zalo</a>}</div></div></div><div className="mt-8"><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Sản phẩm đang bán</p><h2 className="mt-1 text-2xl font-black">{items.length} sản phẩm</h2>{items.length?<div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{items.map(x=><Link key={x.id} href={"/tin?id="+x.id} className="overflow-hidden rounded-2xl border bg-white hover:shadow-soft"><div className="aspect-[4/3] bg-slate-100">{x.images?.[0]&&<img src={x.images[0]} alt="" className="h-full w-full object-cover"/></div><div className="p-4"><h3 className="line-clamp-2 text-sm font-bold">{x.title}</h3><p className="mt-2 font-black text-brand-700">{x.price_type==="contact"?"Liên hệ":money.format(x.price)+" đ"}</p><p className="mt-2 text-xs text-slate-500">{x.location_name}</p></div></Link>)}</div>:<div className="card mt-5 p-10 text-center text-slate-500">Nhà bán hàng chưa có sản phẩm đang hiển thị.</div>}</div></section></main>
+const money = new Intl.NumberFormat("vi-VN");
+
+type Seller = {
+  store_name: string;
+  phone: string;
+  zalo_phone: string | null;
+  category_id: string;
+  location_id: string;
+  status: string;
+};
+
+type Profile = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+};
+
+type Item = {
+  id: string;
+  title: string;
+  price: number;
+  price_type: string;
+  images: string[] | null;
+  location_name: string;
+};
+
+export default function SellerPage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [seller, setSeller] = useState<Seller | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [locationName, setLocationName] = useState("Phú Thọ");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const id = new URLSearchParams(window.location.search).get("id");
+
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const [profileResult, sellerResult] = await Promise.all([
+        supabaseBrowser
+          .from("profiles")
+          .select("id,full_name,avatar_url,created_at")
+          .eq("id", id)
+          .maybeSingle(),
+        supabaseBrowser
+          .from("seller_registrations")
+          .select("store_name,phone,zalo_phone,category_id,location_id,status")
+          .eq("user_id", id)
+          .eq("status", "approved")
+          .maybeSingle(),
+      ]);
+
+      setProfile(profileResult.data);
+      setSeller(sellerResult.data);
+
+      if (sellerResult.data) {
+        const sellerData = sellerResult.data;
+
+        const { data: listings, error: listingsError } = await supabaseBrowser
+          .from("listings")
+          .select("id,title,price,price_type,images")
+          .eq("seller_id", id)
+          .eq("status", "published")
+          .or(
+            "expires_at.is.null,expires_at.gt." + new Date().toISOString()
+          )
+          .order("created_at", { ascending: false })
+          .limit(60);
+
+        if (!listingsError) {
+          const [categoryResult, locationResult] = await Promise.all([
+            sellerData.category_id
+              ? supabaseBrowser
+                  .from("categories")
+                  .select("name")
+                  .eq("id", sellerData.category_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+            sellerData.location_id
+              ? supabaseBrowser
+                  .from("locations")
+                  .select("name")
+                  .eq("id", sellerData.location_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+
+          const nextCategoryName = categoryResult.data?.name || "";
+          const nextLocationName =
+            locationResult.data?.name || "Phú Thọ";
+
+          setCategoryName(nextCategoryName);
+          setLocationName(nextLocationName);
+
+          setItems(
+            (listings || []).map((item) => ({
+              id: item.id,
+              title: item.title,
+              price: item.price || 0,
+              price_type: item.price_type,
+              images: item.images || [],
+              location_name: nextLocationName,
+            }))
+          );
+        }
+      }
+
+      setLoading(false);
+    }
+
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <main>
+        <Header />
+        <section className="container-page py-12 text-center text-slate-500">
+          Đang tải hồ sơ...
+        </section>
+      </main>
+    );
+  }
+
+  if (!profile || !seller) {
+    return (
+      <main>
+        <Header />
+        <section className="container-page py-12 text-center">
+          <h1 className="text-2xl font-black">Không tìm thấy nhà bán hàng</h1>
+          <p className="mt-2 text-slate-500">
+            Nhà bán hàng chưa được duyệt hoặc hồ sơ không còn hoạt động.
+          </p>
+          <Link
+            href="/danh-muc"
+            className="mt-4 inline-block font-bold text-brand-700"
+          >
+            ← Về danh mục
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main>
+      <Header />
+
+      <section className="container-page py-8">
+        <Link
+          href="/danh-muc"
+          className="text-sm font-bold text-brand-700"
+        >
+          ← Quay lại danh mục
+        </Link>
+
+        <div className="card mt-5 p-6 md:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-24 w-24 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600">
+                <UserRound size={38} />
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
+                Hồ sơ nhà bán hàng
+              </p>
+
+              <h1 className="mt-1 text-3xl font-black">
+                {seller.store_name}
+              </h1>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Người đại diện: {profile.full_name || "Nhà bán hàng"} · Tham
+                gia từ{" "}
+                {new Date(profile.created_at).toLocaleDateString("vi-VN")}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
+                <span className="rounded-full bg-slate-100 px-3 py-1">
+                  Danh mục: {categoryName || "Sản phẩm"}
+                </span>
+
+                <span className="rounded-full bg-slate-100 px-3 py-1">
+                  <MapPin size={13} className="mr-1 inline" />
+                  {locationName}
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {seller.phone && (
+                  <a
+                    href={"tel:" + seller.phone}
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-white"
+                  >
+                    <Phone size={16} />
+                    {seller.phone}
+                  </a>
+                )}
+
+                {seller.zalo_phone && (
+                  <a
+                    href={
+                      "https://zalo.me/" +
+                      seller.zalo_phone.replace(/\D/g, "")
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#0068ff] px-4 py-2.5 text-sm font-extrabold text-white"
+                  >
+                    💬 Liên hệ Zalo
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">
+            Sản phẩm đang bán
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black">
+            {items.length} sản phẩm
+          </h2>
+
+          {items.length > 0 ? (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {items.map((item) => (
+                <Link
+                  key={item.id}
+                  href={"/tin?id=" + item.id}
+                  className="overflow-hidden rounded-2xl border bg-white hover:shadow-soft"
+                >
+                  <div className="aspect-[4/3] bg-slate-100">
+                    {item.images?.[0] && (
+                      <img
+                        src={item.images[0]}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  <div className="p-4">
+                    <h3 className="line-clamp-2 text-sm font-bold">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-2 font-black text-brand-700">
+                      {item.price_type === "contact"
+                        ? "Liên hệ"
+                        : money.format(item.price) + " đ"}
+                    </p>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      {item.location_name}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="card mt-5 p-10 text-center text-slate-500">
+              Nhà bán hàng chưa có sản phẩm đang hiển thị.
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
 }
