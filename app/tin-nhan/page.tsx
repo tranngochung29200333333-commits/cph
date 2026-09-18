@@ -32,17 +32,20 @@ export default function MessagesPage() {
   async function loadInbox(u: any) {
     const {data: rows} = await supabaseBrowser
       .from("messages")
-      .select("id,listing_id,sender_id,receiver_id,body,created_at")
+      .select("id,listing_id,sender_id,receiver_id,body,created_at,read_at")
       .or("sender_id.eq." + u.id + ",receiver_id.eq." + u.id)
       .order("created_at", {ascending: false})
       .limit(200);
 
     const ids = [...new Set((rows || []).map((x: any) => x.listing_id).filter(Boolean))];
+    const partners = [...new Set((rows || []).map((x: any) => x.sender_id === u.id ? x.receiver_id : x.sender_id).filter(Boolean))];
 
     if (!ids.length) {
       setInbox([]);
       return;
     }
+
+    const {data: ps} = partners.length ? await supabaseBrowser.from("profiles").select("id,full_name,avatar_url").in("id", partners) : {data: []};
 
     const {data: ls} = await supabaseBrowser
       .from("listings")
@@ -50,21 +53,24 @@ export default function MessagesPage() {
       .in("id", ids);
 
     const byId = new Map((ls || []).map((x: any) => [x.id, x]));
+    const byProfile = new Map((ps || []).map((x: any) => [x.id, x]));
     const seen = new Set<string>();
 
     setInbox(
       (rows || [])
         .filter((x: any) => {
-          if (!x.listing_id || seen.has(x.listing_id)) return false;
-          seen.add(x.listing_id);
+          const partner = x.sender_id === u.id ? x.receiver_id : x.sender_id;
+          const key = x.listing_id + ":" + partner;
+          if (!x.listing_id || seen.has(key)) return false;
+          seen.add(key);
           return true;
         })
-        .map((x: any) => ({...x, listing: byId.get(x.listing_id)}))
+        .map((x: any) => ({...x, listing: byId.get(x.listing_id), partner_id: x.sender_id === u.id ? x.receiver_id : x.sender_id, partner: byProfile.get(x.sender_id === u.id ? x.receiver_id : x.sender_id), unread: (rows || []).filter((m: any) => m.listing_id === x.listing_id && m.sender_id === (x.sender_id === u.id ? x.receiver_id : x.sender_id) && m.receiver_id === u.id && !m.read_at).length}))
         .filter((x: any) => x.listing)
     );
   }
 
-  async function loadConversation(u: any, lid: string) {
+  async function loadConversation(u: any, lid: string, partnerId?: string | null) {
     const {data: l} = await supabaseBrowser
       .from("listings")
       .select("id,title,price,images,seller_id,profiles(full_name)")
@@ -85,7 +91,12 @@ export default function MessagesPage() {
       .or("sender_id.eq." + u.id + ",receiver_id.eq." + u.id)
       .order("created_at", {ascending: true});
 
-    setMessages(data || []);
+    const conversation = (data || []).filter((m: any) => !partnerId || ((m.sender_id === u.id && m.receiver_id === partnerId) || (m.sender_id === partnerId && m.receiver_id === u.id)));
+    setMessages(conversation);
+
+    if (partnerId && partnerId !== u.id) {
+      await supabaseBrowser.from("messages").update({read_at: new Date().toISOString()}).eq("listing_id", lid).eq("sender_id", partnerId).eq("receiver_id", u.id).is("read_at", null);
+    }
 
     await supabaseBrowser
       .from("messages")
@@ -105,8 +116,9 @@ export default function MessagesPage() {
     }
 
     const lid = getListingId();
+    const partner = getPartnerId();
 
-    if (lid) await loadConversation(u, lid);
+    if (lid) await loadConversation(u, lid, partner);
     else await loadInbox(u);
 
     setLoading(false);
@@ -120,6 +132,7 @@ export default function MessagesPage() {
 
       const {data: {user: u}} = await supabaseBrowser.auth.getUser();
       const lid = getListingId();
+      const partner = getPartnerId();
 
       if (!u) return;
 
@@ -137,7 +150,7 @@ export default function MessagesPage() {
           },
           async () => {
             if (lid) {
-              await loadConversation(u, lid);
+              await loadConversation(u, lid, partner);
             } else {
               await loadInbox(u);
             }
@@ -157,9 +170,9 @@ export default function MessagesPage() {
     const body = text.trim();
     if (!body || !user || !listing || sending) return;
 
-    const receiverId = user.id === listing.seller_id
+    const receiverId = getPartnerId() || (user.id === listing.seller_id
       ? messages.find((m) => m.sender_id !== user.id)?.sender_id
-      : listing.seller_id;
+      : listing.seller_id);
 
     if (!receiverId || receiverId === user.id) {
       alert("Chưa có người mua để trả lời.");
@@ -212,7 +225,7 @@ export default function MessagesPage() {
                 {inbox.map((x) => (
                   <Link
                     key={x.id}
-                    href={"/tin-nhan?listing=" + x.listing_id}
+                    href={"/tin-nhan?listing=" + x.listing_id + "&with=" + x.partner_id}
                     className="card flex gap-4 p-4 hover:shadow-soft"
                   >
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
@@ -221,7 +234,7 @@ export default function MessagesPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate font-black">{x.listing.title}</h2>
+                      <div className="flex items-start justify-between gap-3"><h2 className="truncate font-black">{x.listing.title}</h2>{x.unread > 0 && <span className="shrink-0 rounded-full bg-brand-600 px-2 py-1 text-[10px] font-black text-white">{x.unread}</span>}</div><p className="mt-1 truncate text-xs font-bold text-brand-700">{x.partner?.full_name || "Người dùng"}</p>
                       <p className="mt-1 truncate text-sm text-slate-500">{x.body}</p>
                       <p className="mt-1 text-xs text-slate-400">
                         {new Date(x.created_at).toLocaleString("vi-VN")}
