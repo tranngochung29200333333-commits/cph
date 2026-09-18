@@ -223,9 +223,14 @@ export default function SellerPage() {
                   </a>
                 )}
 
-                {currentUserId && currentUserId !== profile.id && (
+                {currentUserId && currentUserId !== profile.id && items.length > 0 && (
                   <Link
-                    href={"/tin-nhan?with=" + encodeURIComponent(profile.id)}
+                    href={
+                      "/tin-nhan?listing=" +
+                      encodeURIComponent(items[0].id) +
+                      "&with=" +
+                      encodeURIComponent(profile.id)
+                    }
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white"
                   >
                     <MessageCircle size={16} />
