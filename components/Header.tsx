@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import {LogIn,Plus,Heart,MessageCircle,UserRound,Search,Home,LogOut} from "lucide-react";
+import {LogIn,Plus,Heart,MessageCircle,UserRound,Search,Home,LogOut,ArrowLeft} from "lucide-react";
 import {useEffect,useState} from "react";
+import {usePathname} from "next/navigation";
 import Logo from "./Logo";
 import {supabaseBrowser} from "../lib/supabase-browser";
 
@@ -18,6 +19,7 @@ function MessageIcon({unread=false}:{unread?:boolean}) {
 }
 
 export default function Header(){
+  const pathname=usePathname();
   const[user,setUser]=useState<any>(null);
   const[unread,setUnread]=useState(false);
   const[ready,setReady]=useState(false);
@@ -68,6 +70,7 @@ export default function Header(){
       </div>
       <Link href="/dang-tin" className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-3 sm:h-auto sm:px-4 sm:py-2.5 text-sm font-bold text-white hover:bg-brand-700" aria-label="Đăng tin"><Plus size={18}/><span className="hidden sm:inline">Đăng tin</span></Link>
     </div>
+    {pathname!=="/"&&<div className="border-t bg-white md:hidden"><div className="container-page h-11 flex items-center"><Link href="/" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-slate-600 active:text-brand-700" aria-label="Quay về trang chủ"><ArrowLeft size={17}/>Trang chủ</Link></div></div>}
     <nav aria-label="Điều hướng trên điện thoại" className="mobile-bottom-nav md:hidden">
       {mobileItems.map(({href,label,icon:Icon})=><Link key={href} href={href} className="mobile-nav-item">{href==="/tin-nhan"?<MessageIcon unread={unread}/>:<Icon size={19}/>}<span>{label}</span></Link>)}
     </nav>
