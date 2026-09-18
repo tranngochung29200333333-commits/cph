@@ -62,9 +62,9 @@ export default function Home() {
       const listings = listingData || [];
       const categoryIds = registrations.map((item: any) => item.category_id).filter(Boolean);
       const { data: sellerCategories } = categoryIds.length
-        ? await supabaseBrowser.from("categories").select("id,name").in("id", categoryIds)
+        ? await supabaseBrowser.from("categories").select("id,name,slug").in("id", categoryIds)
         : { data: [] };
-      const categoryMap = new Map((sellerCategories || []).map((item: any) => [item.id, item.name]));
+      const categoryMap = new Map((sellerCategories || []).map((item: any) => [item.id, { name: item.name, slug: item.slug }]));
 
       let profileData: any[] = [];
       if (sellerIds.length) {
