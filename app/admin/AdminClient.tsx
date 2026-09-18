@@ -506,7 +506,7 @@ export default function AdminClient() {
                       <label className="text-xs font-bold md:col-span-2">Khu vực<select id={"seller-location-" + seller.user_id} defaultValue={seller.location_id} className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm">{sellerLocations.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={() => updateAccount(seller, seller)} className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white">Lưu thay đổi</button>
+                      <button type="button" onClick={() => updateAccount({ ...seller, id: seller.user_id }, seller)} className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white">Lưu thay đổi</button>
                       <button type="button" onClick={() => setEditingSellerId(null)} className="rounded-lg border bg-white px-4 py-2 text-xs font-bold">Hủy</button>
                     </div>
                   </div>
