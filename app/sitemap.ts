@@ -1,0 +1,2 @@
+import type {MetadataRoute} from "next";
+export default function sitemap():MetadataRoute.Sitemap{const base="https://tranngochung29200333333-commits.github.io/cph";return[{url:base,lastModified:new Date(),changeFrequency:"daily",priority:1},{url:base+"/tim-kiem",changeFrequency:"hourly",priority:.9},{url:base+"/danh-muc",changeFrequency:"daily",priority:.8},{url:base+"/khu-vuc",changeFrequency:"daily",priority:.8},{url:base+"/dang-tin",changeFrequency:"weekly",priority:.7}]}
