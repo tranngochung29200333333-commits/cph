@@ -50,7 +50,7 @@ export default function AdminClient() {
 
     setAllowed(true);
 
-    const [listingResult, reportResult, userResult, sellerResult] = await Promise.all([
+    const [listingResult, reportResult, userResult, sellerRegistrationResult] = await Promise.all([
       supabaseBrowser
         .from("listings")
         .select(
@@ -75,7 +75,7 @@ export default function AdminClient() {
         .limit(500),
     ]);
 
-    if (listingResult.error || reportResult.error || userResult.error || sellerResult.error) {
+    if (listingResult.error || reportResult.error || userResult.error || sellerRegistrationResult.error) {
       setError(
         listingResult.error?.message ||
           reportResult.error?.message ||
@@ -110,7 +110,7 @@ export default function AdminClient() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-    const sellerMap = new Map((sellerResult.data || []).map((x) => [x.id, x]));
+    const sellerMap = new Map((sellerRegistrationResult.data || []).map((x) => [x.id, x]));
     const categoryMap = new Map((categoryResult.data || []).map((x) => [x.id, x]));
     const locationMap = new Map((locationResult.data || []).map((x) => [x.id, x]));
     const reportListingMap = new Map(
