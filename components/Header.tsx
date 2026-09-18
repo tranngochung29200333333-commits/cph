@@ -5,6 +5,7 @@ import {LogIn,Plus,Heart,MessageCircle,UserRound,Search,Home,LogOut,ArrowLeft} f
 import {useEffect,useState} from "react";
 import {usePathname} from "next/navigation";
 import Logo from "./Logo";
+import NotificationBell from "./NotificationBell";
 import {supabaseBrowser} from "../lib/supabase-browser";
 
 const mobileItems=[
@@ -61,6 +62,7 @@ export default function Header(){
       <div className="ml-auto hidden items-center gap-1 sm:flex">
         <Link href="/yeu-thich" className="rounded-xl p-2.5 text-slate-600" title="Yêu thích"><Heart size={18}/></Link>
         <Link href="/tin-nhan" className="rounded-xl p-2.5 text-slate-600" title="Tin nhắn"><MessageIcon unread={unread}/></Link>
+        {ready&&user&&<NotificationBell/>}
         {ready&&user ? (
           <>
             {isAdmin&&<Link href="/admin" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Quản trị</Link>}{!isVerifiedSeller&&<Link href="/dang-ky-nha-ban-hang" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700">Đăng ký nhà bán hàng</Link>}{isVerifiedSeller&&<Link href="/tai-khoan" className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-extrabold text-brand-700" title="Nhà bán hàng đã xác minh">✓ Đã xác minh</Link>}
