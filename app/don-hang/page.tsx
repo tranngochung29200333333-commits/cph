@@ -1,0 +1,14 @@
+"use client";
+import {useEffect,useState} from "react";
+import Link from "next/link";
+import Header from "../../components/Header";
+import AuthGuard from "../../components/AuthGuard";
+import {supabaseBrowser} from "../../lib/supabase-browser";
+const money=new Intl.NumberFormat("vi-VN");
+const labels:any={pending:"Chờ xác nhận",confirmed:"Đã xác nhận",shipping:"Đang giao",delivered:"Đã giao",cancelled:"Đã hủy"};
+export default function OrdersPage(){
+ const[orders,setOrders]=useState<any[]>([]),[loading,setLoading]=useState(true);
+ async function load(){const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){setLoading(false);return}const{data,error}=await supabaseBrowser.from("orders").select("id,order_code,seller_id,grand_total,customer_name,customer_phone,shipping_address,status,created_at").eq("buyer_id",user.id).order("created_at",{ascending:false});if(!error)setOrders(data||[]);setLoading(false)}
+ useEffect(()=>{load()},[]);
+ return <AuthGuard><main><Header/><section className="container-page py-8"><div className="card p-6 md:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-extrabold uppercase tracking-widest text-brand-600">Mua hàng</p><h1 className="mt-1 text-3xl font-black">Đơn hàng của tôi</h1></div><Link href="/gio-hang" className="rounded-xl border px-4 py-2.5 text-sm font-extrabold">🛒 Giỏ hàng</Link></div>{loading?<p className="py-12 text-center text-slate-500">Đang tải...</p>:!orders.length?<div className="py-12 text-center text-slate-500">Bạn chưa có đơn hàng.</div>:<div className="mt-6 divide-y">{orders.map(o=><div key={o.id} className="py-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black">{o.order_code}</p><p className="mt-1 text-sm text-slate-500">{new Date(o.created_at).toLocaleString("vi-VN")}</p><p className="mt-2 text-sm">Người nhận: <b>{o.customer_name}</b> · {o.customer_phone}</p><p className="mt-1 text-sm text-slate-500">{o.shipping_address}</p></div><div className="text-right"><span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-extrabold text-brand-700">{labels[o.status]||o.status}</span><p className="mt-3 text-lg font-black text-brand-700">{money.format(o.grand_total)} đ</p></div></div></div>)}</div>}</div></section></main></AuthGuard>
+}
