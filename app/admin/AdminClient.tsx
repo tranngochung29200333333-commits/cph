@@ -130,7 +130,7 @@ export default function AdminClient() {
     const allCategories = adminData.categories || [];
     const allLocations = adminData.locations || [];
     const sellerRows = accountRows
-      .filter((x: any) => x.seller_registration?.status)
+      .filter((x: any) => ["pending", "approved"].includes(x.seller_registration?.status || ""))
       .map((x: any) => ({
         ...x.seller_registration,
         user_id: x.id,
