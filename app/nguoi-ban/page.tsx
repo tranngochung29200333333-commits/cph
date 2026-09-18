@@ -314,7 +314,6 @@ export default function SellerPage() {
           )}
         </div>
       </section>
-      <Link href="/gio-hang" aria-label={"Giỏ hàng, "+cart.reduce((n,i)=>n+i.quantity,0)+" sản phẩm"} className="fixed bottom-20 left-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg md:bottom-6 md:left-6"><ShoppingCart size={24}/>{cart.reduce((n,i)=>n+i.quantity,0)>0&&<span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-red-500 px-1.5 py-1 text-center text-xs font-black text-white">{cart.reduce((n,i)=>n+i.quantity,0)}</span>}</Link>
     </main>
   );
 }
