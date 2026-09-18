@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "../../lib/supabase-browser";
 
-type Tab = "listings" | "reports" | "users" | "sellers";
+type Tab = "listings" | "reports" | "users" | "sellers" | "orders";
 type Filter = "pending" | "published" | "rejected" | "sold" | "all";
 
 const statusLabel: Record<string, string> = {
@@ -28,6 +28,7 @@ export default function AdminClient() {
   const [filter, setFilter] = useState<Filter>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [orders, setOrders] = useState<any[]>([]);
 
   async function load() {
     setError("");
@@ -54,7 +55,7 @@ export default function AdminClient() {
 
     setAllowed(true);
 
-    const [listingResult, reportResult, adminUsersResult] = await Promise.all([
+    const [listingResult, reportResult, adminUsersResult, ordersResult] = await Promise.all([
       supabaseBrowser
         .from("listings")
         .select("id,title,price,price_type,images,status,created_at,rejection_reason,seller_id,category_id,location_id")
@@ -66,13 +67,15 @@ export default function AdminClient() {
         .order("created_at", { ascending: false })
         .limit(100),
       supabaseBrowser.functions.invoke("admin-users", { body: { action: "list" } }),
+      supabaseBrowser.from("orders").select("id,order_code,buyer_id,seller_id,total_amount,shipping_fee,grand_total,customer_name,customer_phone,shipping_address,status,payment_method,created_at").order("created_at",{ascending:false}).limit(500),
     ]);
 
-    if (listingResult.error || reportResult.error || adminUsersResult.error) {
+    if (listingResult.error || reportResult.error || adminUsersResult.error || ordersResult.error) {
       setError(
         listingResult.error?.message ||
           reportResult.error?.message ||
           adminUsersResult.error?.message ||
+          ordersResult.error?.message ||
           "Không tải được dữ liệu quản trị."
       );
       setLoading(false);
@@ -120,6 +123,7 @@ export default function AdminClient() {
       }))
     );
 
+    setOrders(ordersResult.data || []);
     setReports(
       reportsData.map((x) => ({
         ...x,
@@ -571,6 +575,21 @@ export default function AdminClient() {
 
             {!users.length && <div className="p-10 text-center text-slate-500">Không có khách đăng ký tài khoản.</div>}
           </div>
+        </section>
+      )}
+
+      {tab === "orders" && (
+        <section className="card mt-7 overflow-hidden">
+          <div className="border-b bg-slate-50 p-4"><h2 className="font-black">Tất cả đơn hàng</h2><p className="mt-1 text-sm text-slate-500">Admin quản lý đơn hàng của tất cả nhà bán hàng.</p></div>
+          <div className="divide-y">{orders.map((o:any)=><div key={o.id} className="p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div><p className="font-black">{o.order_code}</p><p className="mt-1 text-sm text-slate-600">Khách: {o.customer_name} · {o.customer_phone}</p><p className="mt-1 text-sm text-slate-500">Địa chỉ: {o.shipping_address}</p><p className="mt-1 text-sm font-extrabold text-brand-700">{new Intl.NumberFormat("vi-VN").format(o.grand_total)} đ</p></div>
+              <select value={o.status} onChange={async(e)=>{const {data,error}=await supabaseBrowser.functions.invoke("order-actions",{body:{action:"update_status",order_id:o.id,status:e.target.value}});if(error||data?.error)alert(data?.error||error?.message);else await load();}} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold">
+                <option value="pending">Chờ xác nhận</option><option value="confirmed">Đã xác nhận</option><option value="shipping">Đang giao</option><option value="delivered">Đã giao</option><option value="cancelled">Đã hủy</option>
+              </select>
+            </div>
+            <p className="mt-2 text-xs text-slate-400">{new Date(o.created_at).toLocaleString("vi-VN")}</p>
+          </div>)}{!orders.length&&<div className="p-10 text-center text-slate-500">Chưa có đơn hàng.</div>}</div>
         </section>
       )}
 
